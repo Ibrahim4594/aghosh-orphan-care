@@ -81,7 +81,8 @@ export function ImpactStoriesSection({ stories }: ImpactStoriesProps) {
   const { t, isRTL, language } = useLanguage();
   const [selectedStory, setSelectedStory] = useState<ImpactStory | null>(null);
   
-  const displayStories = stories || (language === "ur" ? defaultStoriesUr : defaultStoriesEn);
+  // Always use language-specific local stories for proper translation
+  const displayStories = language === "ur" ? defaultStoriesUr : (stories || defaultStoriesEn);
 
   return (
     <section className="py-16 md:py-24">

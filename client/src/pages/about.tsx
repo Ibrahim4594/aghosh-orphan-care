@@ -9,12 +9,12 @@ export default function AboutPage() {
   const { t, isRTL } = useLanguage();
 
   const milestones = [
-    { year: "2008", titleKey: "Foundation Announced", descKey: "Aghosh Orphan Care Home announced under Minhaj Welfare Foundation by Shaykh-ul-Islam Dr. Muhammad Tahir-ul-Qadri on 15th July 2008." },
-    { year: "2008", titleKey: "Construction Begins", descKey: "Construction of permanent purpose-built campus for orphans started in November 2008." },
-    { year: "2010", titleKey: "Education Programs Launch", descKey: "Launched Hifz-e-Quran program and Minhaj Model School for comprehensive education." },
-    { year: "2015", titleKey: "Trauma Center Established", descKey: "Medical Trauma Center established with qualified doctors for complete healthcare." },
-    { year: "2020", titleKey: "Aghosh Karachi Opens", descKey: "Expanded operations with new Aghosh facility in Karachi to serve more children." },
-    { year: "2024", titleKey: "500+ Children Supported", descKey: "Reached milestone of supporting over 500 orphans with quality education and care." },
+    { year: "2008", titleKey: "about.milestone1Title", descKey: "about.milestone1Desc" },
+    { year: "2008", titleKey: "about.milestone2Title", descKey: "about.milestone2Desc" },
+    { year: "2010", titleKey: "about.milestone3Title", descKey: "about.milestone3Desc" },
+    { year: "2015", titleKey: "about.milestone4Title", descKey: "about.milestone4Desc" },
+    { year: "2020", titleKey: "about.milestone5Title", descKey: "about.milestone5Desc" },
+    { year: "2024", titleKey: "about.milestone6Title", descKey: "about.milestone6Desc" },
   ];
 
   const facilities = [
@@ -176,8 +176,8 @@ export default function AboutPage() {
                       <span className="text-primary font-bold text-lg">{milestone.year}</span>
                     </div>
                     <div>
-                      <h3 className="font-semibold">{milestone.titleKey}</h3>
-                      <p className="text-sm text-muted-foreground mt-1">{milestone.descKey}</p>
+                      <h3 className="font-semibold">{t(milestone.titleKey)}</h3>
+                      <p className="text-sm text-muted-foreground mt-1">{t(milestone.descKey)}</p>
                     </div>
                   </div>
                 </CardContent>
