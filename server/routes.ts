@@ -5,6 +5,7 @@ import { insertDonationSchema, insertProgramSchema, insertImpactStorySchema, don
 import { z } from "zod";
 import { randomUUID, createHash } from "crypto";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
+import { setupAuth, registerAuthRoutes } from "./replit_integrations/auth";
 
 // Session storage with per-session tokens
 const activeSessions: Map<string, { username: string; createdAt: Date }> = new Map();
@@ -72,6 +73,10 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  
+  // Setup Replit Auth for donor login/signup
+  await setupAuth(app);
+  registerAuthRoutes(app);
   
   // Clean expired sessions periodically
   setInterval(cleanExpiredSessions, 5 * 60 * 1000);
@@ -276,7 +281,7 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Username and password required" });
       }
       
-      const user = await storage.getUserByUsername(username);
+      const user = await storage.getAdminUserByUsername(username);
       
       if (!user) {
         return res.status(401).json({ message: "Invalid credentials" });

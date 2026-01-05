@@ -1,6 +1,6 @@
 import { 
-  type User, 
-  type InsertUser, 
+  type AdminUser, 
+  type InsertAdminUser, 
   type Donation, 
   type InsertDonation,
   type Program,
@@ -18,10 +18,10 @@ function hashPassword(password: string): string {
 }
 
 export interface IStorage {
-  // Users
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  // Admin Users
+  getAdminUser(id: string): Promise<AdminUser | undefined>;
+  getAdminUserByUsername(username: string): Promise<AdminUser | undefined>;
+  createAdminUser(user: InsertAdminUser): Promise<AdminUser>;
   
   // Donations
   getDonations(): Promise<Donation[]>;
@@ -46,13 +46,13 @@ export interface IStorage {
 }
 
 export class MemStorage implements IStorage {
-  private users: Map<string, User>;
+  private adminUsers: Map<string, AdminUser>;
   private donations: Map<string, Donation>;
   private programs: Map<string, Program>;
   private impactStories: Map<string, ImpactStory>;
 
   constructor() {
-    this.users = new Map();
+    this.adminUsers = new Map();
     this.donations = new Map();
     this.programs = new Map();
     this.impactStories = new Map();
@@ -63,7 +63,7 @@ export class MemStorage implements IStorage {
   private seedData() {
     // Create admin user with hashed password
     const adminId = randomUUID();
-    this.users.set(adminId, {
+    this.adminUsers.set(adminId, {
       id: adminId,
       username: "admin",
       password: hashPassword("admin123"), // Store hashed password
@@ -167,25 +167,25 @@ export class MemStorage implements IStorage {
     });
   }
 
-  // User methods
-  async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+  // Admin User methods
+  async getAdminUser(id: string): Promise<AdminUser | undefined> {
+    return this.adminUsers.get(id);
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
+  async getAdminUserByUsername(username: string): Promise<AdminUser | undefined> {
+    return Array.from(this.adminUsers.values()).find(
       (user) => user.username === username,
     );
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
+  async createAdminUser(insertUser: InsertAdminUser): Promise<AdminUser> {
     const id = randomUUID();
-    const user: User = { 
+    const user: AdminUser = { 
       ...insertUser, 
       id,
       password: hashPassword(insertUser.password) // Hash password on creation
     };
-    this.users.set(id, user);
+    this.adminUsers.set(id, user);
     return user;
   }
 
