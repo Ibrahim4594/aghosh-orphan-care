@@ -253,10 +253,10 @@ const translations: Record<Language, Translations> = {
     "impact.raised": "raised",
     "impact.goal": "Goal",
     "impact.contributeNow": "Contribute Now",
-    "impact.everyDollarMatters": "Every Dollar Makes a Difference",
-    "impact.25impact": "Provides meals for one child for a month",
-    "impact.50impact": "Covers school supplies for a semester",
-    "impact.100impact": "Provides medical checkups for 5 children",
+    "impact.everyRupeeCounts": "Every Rupee Makes a Difference",
+    "impact.1000impact": "Provides meals for one child for a week",
+    "impact.2500impact": "Covers school supplies for a month",
+    "impact.5000impact": "Provides medical checkups for 2 children",
     "impact.makeDonationToday": "Make a Donation Today",
     
     // Contact
@@ -557,10 +557,10 @@ const translations: Record<Language, Translations> = {
     "impact.raised": "جمع",
     "impact.goal": "ہدف",
     "impact.contributeNow": "ابھی حصہ ڈالیں",
-    "impact.everyDollarMatters": "ہر ڈالر فرق ڈالتا ہے",
-    "impact.25impact": "ایک ماہ کے لیے ایک بچے کا کھانا فراہم کرتا ہے",
-    "impact.50impact": "ایک سمسٹر کی سکول سپلائیز فراہم کرتا ہے",
-    "impact.100impact": "5 بچوں کا طبی چیک اپ فراہم کرتا ہے",
+    "impact.everyRupeeCounts": "ہر روپیہ فرق ڈالتا ہے",
+    "impact.1000impact": "ایک ہفتے کے لیے ایک بچے کا کھانا فراہم کرتا ہے",
+    "impact.2500impact": "ایک ماہ کی سکول سپلائیز فراہم کرتا ہے",
+    "impact.5000impact": "2 بچوں کا طبی چیک اپ فراہم کرتا ہے",
     "impact.makeDonationToday": "آج عطیہ دیں",
     
     // Contact

@@ -4,10 +4,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { StatisticsBar } from "@/components/sections/statistics";
-import { ImpactStoriesSection } from "@/components/sections/impact-stories";
 import { Heart, TrendingUp, Users, Target } from "lucide-react";
 import { useLanguage } from "@/lib/i18n";
-import type { Statistics, ImpactStory } from "@shared/schema";
+import type { Statistics } from "@shared/schema";
 
 export default function ImpactPage() {
   const { t, isRTL } = useLanguage();
@@ -18,10 +17,6 @@ export default function ImpactPage() {
     { categoryKey: "categories.food", current: 60000, goal: 70000 },
     { categoryKey: "categories.clothing", current: 15000, goal: 25000 },
   ];
-
-  const { data: stories } = useQuery<ImpactStory[]>({
-    queryKey: ["/api/impact-stories"],
-  });
 
   const { data: statistics } = useQuery<Statistics>({
     queryKey: ["/api/statistics"],
@@ -124,30 +119,29 @@ export default function ImpactPage() {
         </div>
       </section>
 
-      <ImpactStoriesSection stories={stories} />
-
+      
       <section className="py-16 md:py-24 bg-accent/30">
         <div className={`max-w-4xl mx-auto px-4 text-center ${isRTL ? "direction-rtl" : ""}`}>
           <h2 className="text-3xl md:text-4xl font-bold mb-6">
-            {t("impact.everyDollarMatters")}
+            {t("impact.everyRupeeCounts")}
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-12">
-            <Card data-testid="card-impact-25">
+            <Card data-testid="card-impact-1000">
               <CardContent className="p-6">
-                <p className="text-3xl font-bold text-primary mb-2">$25</p>
-                <p className="text-muted-foreground">{t("impact.25impact")}</p>
+                <p className="text-3xl font-bold text-primary mb-2">Rs 1,000</p>
+                <p className="text-muted-foreground">{t("impact.1000impact")}</p>
               </CardContent>
             </Card>
-            <Card data-testid="card-impact-50">
+            <Card data-testid="card-impact-2500">
               <CardContent className="p-6">
-                <p className="text-3xl font-bold text-primary mb-2">$50</p>
-                <p className="text-muted-foreground">{t("impact.50impact")}</p>
+                <p className="text-3xl font-bold text-primary mb-2">Rs 2,500</p>
+                <p className="text-muted-foreground">{t("impact.2500impact")}</p>
               </CardContent>
             </Card>
-            <Card data-testid="card-impact-100">
+            <Card data-testid="card-impact-5000">
               <CardContent className="p-6">
-                <p className="text-3xl font-bold text-primary mb-2">$100</p>
-                <p className="text-muted-foreground">{t("impact.100impact")}</p>
+                <p className="text-3xl font-bold text-primary mb-2">Rs 5,000</p>
+                <p className="text-muted-foreground">{t("impact.5000impact")}</p>
               </CardContent>
             </Card>
           </div>
