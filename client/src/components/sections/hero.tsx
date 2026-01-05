@@ -20,12 +20,14 @@ export function HeroSection() {
       <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
       
       <div className="relative z-10 max-w-7xl mx-auto px-4 py-16 md:py-32 text-center">
-        <img 
-          src={aghoshLogo} 
-          alt="Aghosh Orphan Care Home" 
-          className="h-40 w-40 sm:h-48 sm:w-48 md:h-64 md:w-64 object-contain mx-auto mb-6 rounded-lg"
-          data-testid="img-hero-logo"
-        />
+        <div className="flex justify-center items-center mb-8">
+          <img 
+            src={aghoshLogo} 
+            alt="Aghosh Orphan Care Home" 
+            className="h-80 w-80 sm:h-96 sm:w-96 md:h-[512px] md:w-[512px] object-contain rounded-lg"
+            data-testid="img-hero-logo"
+          />
+        </div>
         
         <div className={`mb-6 inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full bg-primary/10 border border-primary/20 ${isRTL ? "flex-row-reverse" : ""}`}>
           <span className="font-arabic text-base sm:text-lg">السَّلَامُ عَلَيْكُمْ</span>
