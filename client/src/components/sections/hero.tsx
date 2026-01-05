@@ -23,7 +23,7 @@ export function HeroSection() {
         <img 
           src={aghoshLogo} 
           alt="Aghosh Orphan Care Home" 
-          className="h-20 w-20 sm:h-24 sm:w-24 md:h-32 md:w-32 object-contain mx-auto mb-6 rounded-lg"
+          className="h-40 w-40 sm:h-48 sm:w-48 md:h-64 md:w-64 object-contain mx-auto mb-6 rounded-lg"
           data-testid="img-hero-logo"
         />
         
