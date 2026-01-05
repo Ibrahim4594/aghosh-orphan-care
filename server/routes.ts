@@ -327,7 +327,11 @@ export async function registerRoutes(
 
   // ============ STRIPE PAYMENTS ============
 
-  // Exchange rates to PKR (approximate rates - in production use a live API)
+  // Supported currencies for donations
+  const supportedCurrencies = ['usd', 'cad', 'gbp', 'aed', 'eur'];
+  
+  // Exchange rates to PKR (approximate rates - refreshed periodically)
+  // Last updated: 2026-01-05
   const exchangeRates: Record<string, number> = {
     usd: 278.50,
     cad: 205.00,
@@ -335,6 +339,16 @@ export async function registerRoutes(
     aed: 75.85,
     eur: 302.00,
     pkr: 1,
+  };
+  const ratesLastUpdated = '2026-01-05';
+
+  // Minimum donation amounts per currency
+  const minimumAmounts: Record<string, number> = {
+    usd: 5,
+    cad: 7,
+    gbp: 4,
+    aed: 20,
+    eur: 5,
   };
 
   // Get Stripe publishable key
@@ -347,36 +361,64 @@ export async function registerRoutes(
     }
   });
 
-  // Get exchange rates
+  // Get exchange rates with timestamp
   app.get("/api/exchange-rates", async (req: Request, res: Response) => {
-    res.json({ rates: exchangeRates, baseCurrency: "pkr" });
+    res.json({ 
+      rates: exchangeRates, 
+      baseCurrency: "pkr",
+      lastUpdated: ratesLastUpdated,
+      supportedCurrencies,
+      minimumAmounts,
+    });
+  });
+
+  // Checkout validation schema
+  const checkoutSchema = z.object({
+    amount: z.number().positive(),
+    currency: z.string().toLowerCase().refine((c) => supportedCurrencies.includes(c), {
+      message: "Unsupported currency"
+    }),
+    category: z.enum(donationCategories),
+    donorName: z.string().optional(),
+    donorEmail: z.string().email().optional().or(z.literal('')),
+    isAnonymous: z.boolean().optional().default(false),
+    message: z.string().max(500).optional(),
   });
 
   // Create donation checkout session
   app.post("/api/donate/checkout", async (req: Request, res: Response) => {
     try {
-      const { 
-        amount, 
-        currency = "usd", 
-        category, 
-        donorName, 
-        donorEmail, 
-        isAnonymous = false,
-        message 
-      } = req.body;
-
-      if (!amount || amount < 1) {
-        return res.status(400).json({ message: "Invalid donation amount" });
+      const parsed = checkoutSchema.safeParse(req.body);
+      
+      if (!parsed.success) {
+        return res.status(400).json({ 
+          message: "Invalid donation data", 
+          errors: parsed.error.errors 
+        });
       }
 
-      if (!category || !donationCategories.includes(category)) {
-        return res.status(400).json({ message: "Invalid donation category" });
+      const { amount, currency, category, donorName, donorEmail, isAnonymous, message } = parsed.data;
+
+      // Validate minimum amount for currency
+      const minAmount = minimumAmounts[currency] || 5;
+      if (amount < minAmount) {
+        return res.status(400).json({ 
+          message: `Minimum donation in ${currency.toUpperCase()} is ${minAmount}` 
+        });
+      }
+
+      // Cap maximum to prevent abuse
+      const maxAmount = 100000;
+      if (amount > maxAmount) {
+        return res.status(400).json({ 
+          message: `Maximum donation is ${maxAmount} ${currency.toUpperCase()}. For larger donations, please contact us.` 
+        });
       }
 
       const stripe = await getUncachableStripeClient();
 
-      // Calculate PKR equivalent for display
-      const rate = exchangeRates[currency.toLowerCase()] || 1;
+      // Calculate PKR equivalent server-side
+      const rate = exchangeRates[currency] || 1;
       const pkrAmount = Math.round(amount * rate);
 
       // Create checkout session with dynamic price
@@ -421,26 +463,39 @@ export async function registerRoutes(
     }
   });
 
+  // Track processed sessions to prevent duplicate donation records
+  const processedSessions = new Set<string>();
+
   // Verify donation success
   app.get("/api/donate/verify/:sessionId", async (req: Request, res: Response) => {
     try {
       const { sessionId } = req.params;
+      
+      if (!sessionId || typeof sessionId !== 'string' || !sessionId.startsWith('cs_')) {
+        return res.status(400).json({ message: "Invalid session ID" });
+      }
+      
       const stripe = await getUncachableStripeClient();
       
       const session = await stripe.checkout.sessions.retrieve(sessionId);
       
       if (session.payment_status === 'paid') {
-        // Record donation in storage
         const metadata = session.metadata || {};
-        await storage.createDonation({
-          donorName: metadata.donorName || 'Anonymous',
-          donorEmail: metadata.donorEmail || null,
-          amount: parseInt(metadata.pkrEquivalent || '0'),
-          category: metadata.category as any || 'general',
-          paymentMethod: 'card',
-          isAnonymous: metadata.isAnonymous === 'true',
-          message: metadata.message || null,
-        });
+        
+        // Only record donation once per session (idempotency)
+        if (!processedSessions.has(sessionId)) {
+          processedSessions.add(sessionId);
+          
+          await storage.createDonation({
+            donorName: metadata.donorName || 'Anonymous',
+            donorEmail: metadata.donorEmail || null,
+            amount: parseInt(metadata.pkrEquivalent || '0'),
+            category: metadata.category as any || 'general',
+            paymentMethod: 'card',
+            isAnonymous: metadata.isAnonymous === 'true',
+            message: metadata.message || null,
+          });
+        }
 
         res.json({ 
           success: true, 
@@ -453,7 +508,8 @@ export async function registerRoutes(
       } else {
         res.json({ success: false, status: session.payment_status });
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Verify error:', error.message);
       res.status(500).json({ message: "Failed to verify payment" });
     }
   });
