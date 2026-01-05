@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { insertDonationSchema, insertProgramSchema, insertImpactStorySchema, donationCategories } from "@shared/schema";
 import { z } from "zod";
 import { randomUUID, createHash } from "crypto";
+import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 
 // Session storage with per-session tokens
 const activeSessions: Map<string, { username: string; createdAt: Date }> = new Map();
@@ -321,6 +322,139 @@ export async function registerRoutes(
       res.json({ authenticated: true, user: session });
     } else {
       res.json({ authenticated: false });
+    }
+  });
+
+  // ============ STRIPE PAYMENTS ============
+
+  // Exchange rates to PKR (approximate rates - in production use a live API)
+  const exchangeRates: Record<string, number> = {
+    usd: 278.50,
+    cad: 205.00,
+    gbp: 352.00,
+    aed: 75.85,
+    eur: 302.00,
+    pkr: 1,
+  };
+
+  // Get Stripe publishable key
+  app.get("/api/stripe/publishable-key", async (req: Request, res: Response) => {
+    try {
+      const publishableKey = await getStripePublishableKey();
+      res.json({ publishableKey });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get Stripe key" });
+    }
+  });
+
+  // Get exchange rates
+  app.get("/api/exchange-rates", async (req: Request, res: Response) => {
+    res.json({ rates: exchangeRates, baseCurrency: "pkr" });
+  });
+
+  // Create donation checkout session
+  app.post("/api/donate/checkout", async (req: Request, res: Response) => {
+    try {
+      const { 
+        amount, 
+        currency = "usd", 
+        category, 
+        donorName, 
+        donorEmail, 
+        isAnonymous = false,
+        message 
+      } = req.body;
+
+      if (!amount || amount < 1) {
+        return res.status(400).json({ message: "Invalid donation amount" });
+      }
+
+      if (!category || !donationCategories.includes(category)) {
+        return res.status(400).json({ message: "Invalid donation category" });
+      }
+
+      const stripe = await getUncachableStripeClient();
+
+      // Calculate PKR equivalent for display
+      const rate = exchangeRates[currency.toLowerCase()] || 1;
+      const pkrAmount = Math.round(amount * rate);
+
+      // Create checkout session with dynamic price
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        mode: 'payment',
+        line_items: [{
+          price_data: {
+            currency: currency.toLowerCase(),
+            product_data: {
+              name: `Donation - ${category.charAt(0).toUpperCase() + category.slice(1)}`,
+              description: `Aghosh Orphan Care Home - ${category} support (PKR ${pkrAmount.toLocaleString()} equivalent)`,
+              images: ['https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=400'],
+            },
+            unit_amount: Math.round(amount * 100),
+          },
+          quantity: 1,
+        }],
+        metadata: {
+          category,
+          donorName: isAnonymous ? 'Anonymous' : (donorName || 'Anonymous'),
+          donorEmail: donorEmail || '',
+          isAnonymous: String(isAnonymous),
+          message: message || '',
+          pkrEquivalent: String(pkrAmount),
+          originalCurrency: currency,
+          originalAmount: String(amount),
+        },
+        customer_email: donorEmail || undefined,
+        success_url: `${req.protocol}://${req.get('host')}/donate/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${req.protocol}://${req.get('host')}/donate`,
+      });
+
+      res.json({ 
+        sessionId: session.id, 
+        url: session.url,
+        pkrEquivalent: pkrAmount 
+      });
+    } catch (error: any) {
+      console.error('Checkout error:', error);
+      res.status(500).json({ message: "Failed to create checkout session" });
+    }
+  });
+
+  // Verify donation success
+  app.get("/api/donate/verify/:sessionId", async (req: Request, res: Response) => {
+    try {
+      const { sessionId } = req.params;
+      const stripe = await getUncachableStripeClient();
+      
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      
+      if (session.payment_status === 'paid') {
+        // Record donation in storage
+        const metadata = session.metadata || {};
+        await storage.createDonation({
+          donorName: metadata.donorName || 'Anonymous',
+          donorEmail: metadata.donorEmail || null,
+          amount: parseInt(metadata.pkrEquivalent || '0'),
+          category: metadata.category as any || 'general',
+          paymentMethod: 'card',
+          isAnonymous: metadata.isAnonymous === 'true',
+          message: metadata.message || null,
+        });
+
+        res.json({ 
+          success: true, 
+          amount: session.amount_total ? session.amount_total / 100 : 0,
+          currency: session.currency?.toUpperCase(),
+          pkrEquivalent: parseInt(metadata.pkrEquivalent || '0'),
+          category: metadata.category,
+          donorName: metadata.isAnonymous === 'true' ? 'Anonymous' : metadata.donorName,
+        });
+      } else {
+        res.json({ success: false, status: session.payment_status });
+      }
+    } catch (error) {
+      res.status(500).json({ message: "Failed to verify payment" });
     }
   });
 
