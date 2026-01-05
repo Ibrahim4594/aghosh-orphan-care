@@ -328,7 +328,7 @@ export async function registerRoutes(
   // ============ STRIPE PAYMENTS ============
 
   // Supported currencies for donations
-  const supportedCurrencies = ['usd', 'cad', 'gbp', 'aed', 'eur'];
+  const supportedCurrencies = ['usd', 'cad', 'gbp', 'aed', 'eur', 'pkr'];
   
   // Exchange rates to PKR (approximate rates - refreshed periodically)
   // Last updated: 2026-01-05
@@ -349,6 +349,7 @@ export async function registerRoutes(
     gbp: 4,
     aed: 20,
     eur: 5,
+    pkr: 500,
   };
 
   // Get Stripe publishable key
@@ -488,12 +489,11 @@ export async function registerRoutes(
           
           await storage.createDonation({
             donorName: metadata.donorName || 'Anonymous',
-            donorEmail: metadata.donorEmail || null,
+            email: metadata.donorEmail || null,
             amount: parseInt(metadata.pkrEquivalent || '0'),
             category: metadata.category as any || 'general',
             paymentMethod: 'card',
             isAnonymous: metadata.isAnonymous === 'true',
-            message: metadata.message || null,
           });
         }
 

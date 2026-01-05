@@ -64,6 +64,7 @@ const currencies = [
   { code: "gbp", symbol: "£", name: "British Pound" },
   { code: "aed", symbol: "د.إ", name: "UAE Dirham" },
   { code: "eur", symbol: "€", name: "Euro" },
+  { code: "pkr", symbol: "Rs", name: "Pakistani Rupee" },
 ];
 
 const donationFormSchema = z.object({
