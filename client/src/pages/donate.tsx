@@ -43,7 +43,10 @@ import {
   Loader2,
   Download,
   ArrowRight,
-  ArrowLeft
+  ArrowLeft,
+  CreditCard,
+  Building2,
+  Copy
 } from "lucide-react";
 import { useLanguage } from "@/lib/i18n";
 import { type DonationCategory } from "@shared/schema";
@@ -74,6 +77,7 @@ const donationFormSchema = z.object({
   currency: z.string().default("usd"),
   category: z.string().min(1, "Please select a donation purpose"),
   donationType: z.enum(["zakat", "sadaqah", "charity", "funds"]).default("sadaqah"),
+  paymentMethod: z.enum(["card", "bank"]).default("card"),
   isAnonymous: z.boolean().default(false),
   message: z.string().optional(),
 });
@@ -127,6 +131,7 @@ export default function DonatePage() {
       currency: "usd",
       category: categoryParam || "",
       donationType: "sadaqah",
+      paymentMethod: "card",
       isAnonymous: false,
       message: "",
     },
@@ -206,6 +211,15 @@ export default function DonatePage() {
   const selectedAmount = form.watch("amount");
   const selectedCurrency = form.watch("currency");
   const isAnonymous = form.watch("isAnonymous");
+  const paymentMethod = form.watch("paymentMethod");
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: t("donate.copied"),
+      description: text,
+    });
+  };
 
   const getCurrencySymbol = (code: string) => {
     return currencies.find(c => c.code === code)?.symbol || "$";
@@ -439,6 +453,94 @@ export default function DonatePage() {
                   />
                 </div>
 
+                <FormField
+                  control={form.control}
+                  name="paymentMethod"
+                  render={({ field }) => (
+                    <FormItem className={isRTL ? "text-right" : ""}>
+                      <FormLabel className="text-base font-semibold">
+                        {t("donate.paymentMethod")}
+                      </FormLabel>
+                      <FormControl>
+                        <div className="grid grid-cols-2 gap-3">
+                          <Button
+                            type="button"
+                            variant={field.value === "card" ? "default" : "outline"}
+                            className="h-14"
+                            onClick={() => field.onChange("card")}
+                            data-testid="button-payment-card"
+                          >
+                            <div className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+                              <CreditCard className="w-5 h-5" />
+                              <span>{t("donate.creditDebitCard")}</span>
+                            </div>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant={field.value === "bank" ? "default" : "outline"}
+                            className="h-14"
+                            onClick={() => field.onChange("bank")}
+                            data-testid="button-payment-bank"
+                          >
+                            <div className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+                              <Building2 className="w-5 h-5" />
+                              <span>{t("donate.bankTransfer")}</span>
+                            </div>
+                          </Button>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {paymentMethod === "bank" && (
+                  <div className={`p-4 bg-accent/50 rounded-md border ${isRTL ? "text-right" : ""}`}>
+                    <h4 className="font-semibold mb-3">{t("donate.bankDetails")}</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className={`flex justify-between items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+                        <span className="text-muted-foreground">{t("donate.bankName")}:</span>
+                        <div className={`flex items-center gap-1 ${isRTL ? "flex-row-reverse" : ""}`}>
+                          <span className="font-medium">Meezan Bank Limited</span>
+                          <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard("Meezan Bank Limited")}>
+                            <Copy className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className={`flex justify-between items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+                        <span className="text-muted-foreground">{t("donate.accountTitle")}:</span>
+                        <div className={`flex items-center gap-1 ${isRTL ? "flex-row-reverse" : ""}`}>
+                          <span className="font-medium">Minhaj Welfare Foundation</span>
+                          <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard("Minhaj Welfare Foundation")}>
+                            <Copy className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className={`flex justify-between items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+                        <span className="text-muted-foreground">{t("donate.accountNumber")}:</span>
+                        <div className={`flex items-center gap-1 ${isRTL ? "flex-row-reverse" : ""}`}>
+                          <span className="font-medium font-mono">0101-0105-3297-51</span>
+                          <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard("0101-0105-3297-51")}>
+                            <Copy className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className={`flex justify-between items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+                        <span className="text-muted-foreground">IBAN:</span>
+                        <div className={`flex items-center gap-1 ${isRTL ? "flex-row-reverse" : ""}`}>
+                          <span className="font-medium font-mono text-xs">PK36MEZN0101010532975100</span>
+                          <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard("PK36MEZN0101010532975100")}>
+                            <Copy className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-3">
+                      {t("donate.bankNote")}
+                    </p>
+                  </div>
+                )}
+
                 <div className="space-y-4">
                   <FormField
                     control={form.control}
@@ -512,25 +614,34 @@ export default function DonatePage() {
                   </div>
                 </div>
 
-                <Button 
-                  type="submit" 
-                  size="lg" 
-                  className="w-full"
-                  disabled={checkoutMutation.isPending}
-                  data-testid="button-complete-donation"
-                >
-                  {checkoutMutation.isPending ? (
-                    <>
-                      <Loader2 className={`w-5 h-5 animate-spin ${isRTL ? "ml-2" : "mr-2"}`} />
-                      {t("donate.processing")}
-                    </>
-                  ) : (
-                    <>
-                      <Heart className={`w-5 h-5 ${isRTL ? "ml-2" : "mr-2"}`} />
-                      {t("donate.completeDonation")} {selectedAmount > 0 && `- ${getCurrencySymbol(selectedCurrency)}${selectedAmount}`}
-                    </>
-                  )}
-                </Button>
+                {paymentMethod === "card" ? (
+                  <Button 
+                    type="submit" 
+                    size="lg" 
+                    className="w-full"
+                    disabled={checkoutMutation.isPending}
+                    data-testid="button-complete-donation"
+                  >
+                    {checkoutMutation.isPending ? (
+                      <>
+                        <Loader2 className={`w-5 h-5 animate-spin ${isRTL ? "ml-2" : "mr-2"}`} />
+                        {t("donate.processing")}
+                      </>
+                    ) : (
+                      <>
+                        <CreditCard className={`w-5 h-5 ${isRTL ? "ml-2" : "mr-2"}`} />
+                        {t("donate.payWithCard")} {selectedAmount > 0 && `- ${getCurrencySymbol(selectedCurrency)}${selectedAmount}`}
+                      </>
+                    )}
+                  </Button>
+                ) : (
+                  <div className="text-center p-4 bg-primary/10 rounded-md border border-primary/20">
+                    <p className="text-sm text-muted-foreground mb-2">{t("donate.bankInstructions")}</p>
+                    <p className="font-semibold text-primary">
+                      {selectedAmount > 0 && `${getCurrencySymbol(selectedCurrency)}${selectedAmount} (PKR ${getPkrEquivalent(selectedAmount, selectedCurrency).toLocaleString()})`}
+                    </p>
+                  </div>
+                )}
               </form>
             </Form>
           </CardContent>
