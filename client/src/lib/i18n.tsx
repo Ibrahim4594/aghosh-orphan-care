@@ -19,9 +19,10 @@ const translations: Record<Language, Translations> = {
     
     // Hero
     "hero.greeting": "Peace be upon you",
-    "hero.title1": "Embrace Orphaned Children with",
-    "hero.love": "Love",
-    "hero.care": "Care",
+    "hero.title1": "An Orphan's Smile is",
+    "hero.love": "Your Kindness",
+    "hero.care": "Their World",
+    "hero.tagline": "Extend a Hand, Transform a Life",
     "hero.description": "Aghosh by Minhaj Welfare Foundation provides shelter, Hifz-e-Quran, modern education, healthcare and turns orphans into socially productive human beings.",
     "hero.learnStory": "Learn Our Story",
     "hero.orphansSupported": "Orphans Supported",
@@ -130,9 +131,10 @@ const translations: Record<Language, Translations> = {
     
     // Hero
     "hero.greeting": "السلام علیکم",
-    "hero.title1": "یتیم بچوں کو گلے لگائیں",
-    "hero.love": "محبت",
-    "hero.care": "دیکھ بھال",
+    "hero.title1": "ایک یتیم کی مسکراہٹ",
+    "hero.love": "آپ کی نیکی",
+    "hero.care": "ان کی دنیا",
+    "hero.tagline": "ایک ہاتھ بڑھائیں، ایک زندگی بدلیں",
     "hero.description": "آغوش منہاج ویلفیئر فاؤنڈیشن کے تحت یتیم بچوں کو پناہ، حفظ قرآن، جدید تعلیم، صحت کی سہولیات فراہم کرتا ہے اور انہیں معاشرے کے مفید شہری بناتا ہے۔",
     "hero.learnStory": "ہماری کہانی",
     "hero.orphansSupported": "یتیم بچے",

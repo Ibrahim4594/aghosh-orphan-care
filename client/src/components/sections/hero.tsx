@@ -32,11 +32,15 @@ export function HeroSection() {
           <span className="text-xs sm:text-sm text-muted-foreground">{t("hero.greeting")}</span>
         </div>
         
-        <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6 max-w-4xl mx-auto px-2" data-testid="text-hero-title">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-4 max-w-4xl mx-auto px-2" data-testid="text-hero-title">
           {t("hero.title1")}{" "}
-          <span className="text-primary">{t("hero.love")}</span> &{" "}
+          <span className="text-primary">{t("hero.love")}</span>,{" "}
           <span className="text-secondary">{t("hero.care")}</span>
         </h1>
+        
+        <p className="text-lg sm:text-xl md:text-2xl font-medium text-primary/80 mb-6" data-testid="text-hero-tagline">
+          {t("hero.tagline")}
+        </p>
         
         <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 sm:mb-10 leading-relaxed px-2" data-testid="text-hero-description">
           {t("hero.description")}
