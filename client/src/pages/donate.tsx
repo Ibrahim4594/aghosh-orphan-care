@@ -3,13 +3,19 @@ import { useLocation, useSearch } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Form,
   FormControl,
@@ -31,14 +37,13 @@ import {
   Utensils, 
   Shirt, 
   HandHeart,
-  CreditCard,
-  Building2,
-  Wallet,
   CheckCircle,
   Shield,
   Lock,
   Loader2,
-  Download
+  Download,
+  ArrowRight,
+  ArrowLeft
 } from "lucide-react";
 import { useLanguage } from "@/lib/i18n";
 import { type DonationCategory } from "@shared/schema";
@@ -53,13 +58,22 @@ const iconMap: Record<string, typeof Heart> = {
   HandHeart,
 };
 
+const currencies = [
+  { code: "usd", symbol: "$", name: "US Dollar" },
+  { code: "cad", symbol: "C$", name: "Canadian Dollar" },
+  { code: "gbp", symbol: "£", name: "British Pound" },
+  { code: "aed", symbol: "د.إ", name: "UAE Dirham" },
+  { code: "eur", symbol: "€", name: "Euro" },
+];
+
 const donationFormSchema = z.object({
   donorName: z.string().optional(),
   email: z.string().email("Please enter a valid email").optional().or(z.literal("")),
   amount: z.number().min(1, "Please enter a valid amount"),
+  currency: z.string().default("usd"),
   category: z.string().min(1, "Please select a donation purpose"),
   isAnonymous: z.boolean().default(false),
-  paymentMethod: z.string().min(1, "Please select a payment method"),
+  message: z.string().optional(),
 });
 
 type DonationFormData = z.infer<typeof donationFormSchema>;
@@ -71,12 +85,28 @@ export default function DonatePage() {
   const searchString = useSearch();
   const params = new URLSearchParams(searchString);
   const categoryParam = params.get("category") as DonationCategory | null;
+  const sessionId = params.get("session_id");
   
   const [customAmount, setCustomAmount] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
-  const [donationDetails, setDonationDetails] = useState<DonationFormData | null>(null);
+  const [donationResult, setDonationResult] = useState<any>(null);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+
+  const ArrowIcon = isRTL ? ArrowLeft : ArrowRight;
+
+  const { data: exchangeData } = useQuery({
+    queryKey: ['/api/exchange-rates'],
+  });
+
+  const exchangeRates = exchangeData?.rates || {
+    usd: 278.50,
+    cad: 205.00,
+    gbp: 352.00,
+    aed: 75.85,
+    eur: 302.00,
+    pkr: 1,
+  };
 
   const categories = [
     { id: "healthcare", icon: "Heart", titleKey: "categories.healthcare" },
@@ -86,21 +116,16 @@ export default function DonatePage() {
     { id: "general", icon: "HandHeart", titleKey: "categories.general" },
   ];
 
-  const paymentMethods = [
-    { id: "card", labelKey: "donate.creditDebitCard", icon: CreditCard },
-    { id: "bank", labelKey: "donate.bankTransfer", icon: Building2 },
-    { id: "wallet", labelKey: "donate.digitalWallet", icon: Wallet },
-  ];
-
   const form = useForm<DonationFormData>({
     resolver: zodResolver(donationFormSchema),
     defaultValues: {
       donorName: "",
       email: "",
       amount: 0,
+      currency: "usd",
       category: categoryParam || "",
       isAnonymous: false,
-      paymentMethod: "",
+      message: "",
     },
   });
 
@@ -110,16 +135,42 @@ export default function DonatePage() {
     }
   }, [categoryParam, form]);
 
-  const donationMutation = useMutation({
+  useEffect(() => {
+    if (sessionId) {
+      verifyPayment(sessionId);
+    }
+  }, [sessionId]);
+
+  const verifyPayment = async (sid: string) => {
+    try {
+      const response = await fetch(`/api/donate/verify/${sid}`);
+      const data = await response.json();
+      if (data.success) {
+        setDonationResult(data);
+        setShowSuccess(true);
+      }
+    } catch (error) {
+      console.error('Failed to verify payment:', error);
+    }
+  };
+
+  const checkoutMutation = useMutation({
     mutationFn: async (data: DonationFormData) => {
-      const response = await apiRequest("POST", "/api/donations", data);
-      return response;
+      const response = await apiRequest("POST", "/api/donate/checkout", {
+        amount: data.amount,
+        currency: data.currency,
+        category: data.category,
+        donorName: data.donorName,
+        donorEmail: data.email,
+        isAnonymous: data.isAnonymous,
+        message: data.message,
+      });
+      return response.json();
     },
-    onSuccess: (_, data) => {
-      setDonationDetails(data);
-      setShowSuccess(true);
-      form.reset();
-      setCustomAmount("");
+    onSuccess: (data) => {
+      if (data.url) {
+        window.location.href = data.url;
+      }
     },
     onError: (error: Error) => {
       toast({
@@ -134,7 +185,7 @@ export default function DonatePage() {
     if (data.isAnonymous) {
       data.donorName = undefined;
     }
-    donationMutation.mutate(data);
+    checkoutMutation.mutate(data);
   };
 
   const handleAmountSelect = (amount: number) => {
@@ -149,7 +200,17 @@ export default function DonatePage() {
   };
 
   const selectedAmount = form.watch("amount");
+  const selectedCurrency = form.watch("currency");
   const isAnonymous = form.watch("isAnonymous");
+
+  const getCurrencySymbol = (code: string) => {
+    return currencies.find(c => c.code === code)?.symbol || "$";
+  };
+
+  const getPkrEquivalent = (amount: number, currency: string) => {
+    const rate = exchangeRates[currency.toLowerCase()] || 1;
+    return Math.round(amount * rate);
+  };
 
   return (
     <main className="py-12 md:py-20">
@@ -226,49 +287,88 @@ export default function DonatePage() {
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="amount"
-                  render={({ field }) => (
-                    <FormItem className={isRTL ? "text-right" : ""}>
-                      <FormLabel className="text-base font-semibold">
-                        {t("donate.selectAmount")}
-                      </FormLabel>
-                      <FormControl>
-                        <div className="space-y-4">
-                          <div className="grid grid-cols-3 gap-2">
-                            {presetAmounts.map((amount) => (
-                              <Button
-                                key={amount}
-                                type="button"
-                                variant={selectedAmount === amount && !customAmount ? "default" : "outline"}
-                                className="h-11 text-sm sm:text-base"
-                                onClick={() => handleAmountSelect(amount)}
-                                data-testid={`button-amount-${amount}`}
-                              >
-                                ${amount}
-                              </Button>
+                <div className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="currency"
+                    render={({ field }) => (
+                      <FormItem className={isRTL ? "text-right" : ""}>
+                        <FormLabel className="text-base font-semibold">
+                          {t("donate.selectCurrency")}
+                        </FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-currency">
+                              <SelectValue placeholder="Select currency" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {currencies.map((currency) => (
+                              <SelectItem key={currency.code} value={currency.code}>
+                                {currency.symbol} {currency.name} ({currency.code.toUpperCase()})
+                              </SelectItem>
                             ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="amount"
+                    render={({ field }) => (
+                      <FormItem className={isRTL ? "text-right" : ""}>
+                        <FormLabel className="text-base font-semibold">
+                          {t("donate.selectAmount")}
+                        </FormLabel>
+                        <FormControl>
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-3 gap-2">
+                              {presetAmounts.map((amount) => (
+                                <Button
+                                  key={amount}
+                                  type="button"
+                                  variant={selectedAmount === amount && !customAmount ? "default" : "outline"}
+                                  className="h-11 text-sm sm:text-base"
+                                  onClick={() => handleAmountSelect(amount)}
+                                  data-testid={`button-amount-${amount}`}
+                                >
+                                  {getCurrencySymbol(selectedCurrency)}{amount}
+                                </Button>
+                              ))}
+                            </div>
+                            <div className="relative">
+                              <span className={`absolute top-1/2 -translate-y-1/2 text-muted-foreground ${isRTL ? "right-3" : "left-3"}`}>
+                                {getCurrencySymbol(selectedCurrency)}
+                              </span>
+                              <Input
+                                type="number"
+                                placeholder={t("donate.enterCustom")}
+                                className={isRTL ? "pr-7" : "pl-7"}
+                                value={customAmount}
+                                onChange={(e) => handleCustomAmountChange(e.target.value)}
+                                data-testid="input-custom-amount"
+                              />
+                            </div>
+                            {selectedAmount > 0 && (
+                              <div className={`p-3 bg-secondary/10 rounded-md border border-secondary/20 ${isRTL ? "text-right" : ""}`}>
+                                <p className="text-sm text-muted-foreground">
+                                  {t("donate.pkrEquivalent")}:
+                                </p>
+                                <p className="text-lg font-semibold text-secondary">
+                                  PKR {getPkrEquivalent(selectedAmount, selectedCurrency).toLocaleString()}
+                                </p>
+                              </div>
+                            )}
                           </div>
-                          <div className="relative">
-                            <span className={`absolute top-1/2 -translate-y-1/2 text-muted-foreground ${isRTL ? "right-3" : "left-3"}`}>
-                              $
-                            </span>
-                            <Input
-                              type="number"
-                              placeholder={t("donate.enterCustom")}
-                              className={isRTL ? "pr-7" : "pl-7"}
-                              value={customAmount}
-                              onChange={(e) => handleCustomAmountChange(e.target.value)}
-                              data-testid="input-custom-amount"
-                            />
-                          </div>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
                 <div className="space-y-4">
                   <FormField
@@ -332,48 +432,6 @@ export default function DonatePage() {
                   )}
                 </div>
 
-                <FormField
-                  control={form.control}
-                  name="paymentMethod"
-                  render={({ field }) => (
-                    <FormItem className={isRTL ? "text-right" : ""}>
-                      <FormLabel className="text-base font-semibold">
-                        {t("donate.paymentMethod")}
-                      </FormLabel>
-                      <FormControl>
-                        <RadioGroup
-                          onValueChange={field.onChange}
-                          value={field.value}
-                          className="grid grid-cols-1 gap-3"
-                        >
-                          {paymentMethods.map((method) => {
-                            const Icon = method.icon;
-                            return (
-                              <Label
-                                key={method.id}
-                                className={`
-                                  flex items-center gap-3 p-4 rounded-md border cursor-pointer transition-all
-                                  ${isRTL ? "flex-row-reverse" : ""}
-                                  ${field.value === method.id 
-                                    ? "border-primary bg-primary/5" 
-                                    : "border-border hover:border-primary/50"
-                                  }
-                                `}
-                                data-testid={`option-payment-${method.id}`}
-                              >
-                                <RadioGroupItem value={method.id} className="sr-only" />
-                                <Icon className={`w-5 h-5 flex-shrink-0 ${field.value === method.id ? "text-primary" : "text-muted-foreground"}`} />
-                                <span className="text-sm font-medium">{t(method.labelKey)}</span>
-                              </Label>
-                            );
-                          })}
-                        </RadioGroup>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
                 <div className={`flex items-center justify-center gap-4 sm:gap-6 py-4 text-xs sm:text-sm text-muted-foreground flex-wrap ${isRTL ? "flex-row-reverse" : ""}`}>
                   <div className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
                     <Shield className="w-4 h-4 flex-shrink-0" />
@@ -389,10 +447,10 @@ export default function DonatePage() {
                   type="submit" 
                   size="lg" 
                   className="w-full"
-                  disabled={donationMutation.isPending}
+                  disabled={checkoutMutation.isPending}
                   data-testid="button-complete-donation"
                 >
-                  {donationMutation.isPending ? (
+                  {checkoutMutation.isPending ? (
                     <>
                       <Loader2 className={`w-5 h-5 animate-spin ${isRTL ? "ml-2" : "mr-2"}`} />
                       {t("donate.processing")}
@@ -400,7 +458,7 @@ export default function DonatePage() {
                   ) : (
                     <>
                       <Heart className={`w-5 h-5 ${isRTL ? "ml-2" : "mr-2"}`} />
-                      {t("donate.completeDonation")} {selectedAmount > 0 && `- $${selectedAmount}`}
+                      {t("donate.completeDonation")} {selectedAmount > 0 && `- ${getCurrencySymbol(selectedCurrency)}${selectedAmount}`}
                     </>
                   )}
                 </Button>
@@ -420,14 +478,17 @@ export default function DonatePage() {
                 {t("donate.donationReceived")}
               </DialogDescription>
             </DialogHeader>
-            <div className={`mt-4 p-4 bg-accent/50 rounded-md ${isRTL ? "text-right" : "text-left"}`}>
-              <p className="text-sm font-medium mb-2">{t("donate.donationDetails")}</p>
-              <div className="text-sm text-muted-foreground space-y-1">
-                <p>{t("donate.purpose")}: {donationDetails?.category && t(`categories.${donationDetails.category}`)}</p>
-                <p>{t("donate.amount")}: ${donationDetails?.amount}</p>
-                <p>{t("donate.payment")}: {donationDetails?.paymentMethod && t(`donate.${donationDetails.paymentMethod === 'card' ? 'creditDebitCard' : donationDetails.paymentMethod === 'bank' ? 'bankTransfer' : 'digitalWallet'}`)}</p>
+            {donationResult && (
+              <div className={`mt-4 p-4 bg-accent/50 rounded-md ${isRTL ? "text-right" : "text-left"}`}>
+                <p className="text-sm font-medium mb-2">{t("donate.donationDetails")}</p>
+                <div className="text-sm text-muted-foreground space-y-1">
+                  <p>{t("donate.purpose")}: {donationResult.category && t(`categories.${donationResult.category}`)}</p>
+                  <p>{t("donate.amount")}: {donationResult.currency} {donationResult.amount}</p>
+                  <p>{t("donate.pkrEquivalent")}: PKR {donationResult.pkrEquivalent?.toLocaleString()}</p>
+                  <p>{t("donate.donor")}: {donationResult.donorName}</p>
+                </div>
               </div>
-            </div>
+            )}
             <div className="flex flex-col gap-2 mt-4">
               <Button 
                 variant="outline" 
