@@ -559,21 +559,34 @@ function DonateForm() {
                 />
 
                 {paymentMethod === "card" && (
-                  <div className={`space-y-2 ${isRTL ? "text-right" : ""}`}>
-                    <Label className="text-base font-semibold">{t("donate.cardDetails")}</Label>
-                    <div className="p-4 border rounded-md bg-background">
+                  <div className={`space-y-3 ${isRTL ? "text-right" : ""}`}>
+                    <div className={`flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
+                      <Label className="text-base font-semibold">{t("donate.cardDetails")}</Label>
+                      <div className={`flex items-center gap-1 ${isRTL ? "flex-row-reverse" : ""}`}>
+                        <div className="w-8 h-5 bg-gradient-to-r from-blue-600 to-blue-800 rounded text-white text-[8px] font-bold flex items-center justify-center">VISA</div>
+                        <div className="w-8 h-5 bg-gradient-to-r from-red-500 to-yellow-500 rounded flex items-center justify-center">
+                          <div className="w-3 h-3 rounded-full bg-red-600 -mr-1"></div>
+                          <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+                        </div>
+                        <div className="w-8 h-5 bg-gradient-to-r from-blue-400 to-blue-600 rounded text-white text-[6px] font-bold flex items-center justify-center">AMEX</div>
+                      </div>
+                    </div>
+                    <div className={`p-4 border-2 rounded-md bg-background transition-colors ${cardError ? 'border-destructive' : 'border-input focus-within:border-primary'}`}>
                       <CardElement 
                         options={{
                           style: {
                             base: {
                               fontSize: '16px',
-                              color: 'hsl(var(--foreground))',
+                              fontFamily: 'system-ui, -apple-system, sans-serif',
+                              color: '#1a1a1a',
                               '::placeholder': {
-                                color: 'hsl(var(--muted-foreground))',
+                                color: '#a0a0a0',
                               },
+                              iconColor: '#666',
                             },
                             invalid: {
-                              color: 'hsl(var(--destructive))',
+                              color: '#dc2626',
+                              iconColor: '#dc2626',
                             },
                           },
                           hidePostalCode: true,
@@ -588,8 +601,14 @@ function DonateForm() {
                       />
                     </div>
                     {cardError && (
-                      <p className="text-sm text-destructive">{cardError}</p>
+                      <p className="text-sm text-destructive flex items-center gap-1">
+                        <span className="w-4 h-4 rounded-full bg-destructive/20 flex items-center justify-center text-xs">!</span>
+                        {cardError}
+                      </p>
                     )}
+                    <p className="text-xs text-muted-foreground">
+                      {t("donate.cardSecure")}
+                    </p>
                   </div>
                 )}
 
@@ -702,13 +721,28 @@ function DonateForm() {
                   )}
                 </div>
 
-                <div className={`flex items-center justify-center gap-4 sm:gap-6 py-4 text-xs sm:text-sm text-muted-foreground flex-wrap ${isRTL ? "flex-row-reverse" : ""}`}>
+                {selectedAmount > 0 && (
+                  <div className={`p-4 bg-gradient-to-r from-primary/5 to-primary/10 rounded-md border border-primary/20 ${isRTL ? "text-right" : ""}`}>
+                    <p className="text-sm text-muted-foreground mb-1">{t("donate.donationSummary")}</p>
+                    <div className={`flex items-baseline gap-2 ${isRTL ? "flex-row-reverse justify-end" : ""}`}>
+                      <span className="text-3xl font-bold text-primary">{getCurrencySymbol(selectedCurrency)}{selectedAmount}</span>
+                      <span className="text-sm text-muted-foreground">{selectedCurrency.toUpperCase()}</span>
+                    </div>
+                    {selectedCurrency !== 'pkr' && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        = PKR {getPkrEquivalent(selectedAmount, selectedCurrency).toLocaleString()}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                <div className={`flex items-center justify-center gap-4 sm:gap-6 py-3 text-xs sm:text-sm text-muted-foreground flex-wrap ${isRTL ? "flex-row-reverse" : ""}`}>
                   <div className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
-                    <Shield className="w-4 h-4 flex-shrink-0" />
+                    <Shield className="w-4 h-4 flex-shrink-0 text-green-600" />
                     <span>{t("donate.securePayment")}</span>
                   </div>
                   <div className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
-                    <Lock className="w-4 h-4 flex-shrink-0" />
+                    <Lock className="w-4 h-4 flex-shrink-0 text-green-600" />
                     <span>{t("donate.encryption")}</span>
                   </div>
                 </div>
@@ -717,19 +751,19 @@ function DonateForm() {
                   <Button 
                     type="submit" 
                     size="lg" 
-                    className="w-full"
-                    disabled={isProcessing || !stripe}
+                    className="w-full h-14 text-lg"
+                    disabled={isProcessing || !stripe || selectedAmount <= 0}
                     data-testid="button-complete-donation"
                   >
                     {isProcessing ? (
                       <>
                         <Loader2 className={`w-5 h-5 animate-spin ${isRTL ? "ml-2" : "mr-2"}`} />
-                        {t("donate.processing")}
+                        {t("donate.processingPayment")}
                       </>
                     ) : (
                       <>
-                        <CreditCard className={`w-5 h-5 ${isRTL ? "ml-2" : "mr-2"}`} />
-                        {t("donate.payWithCard")} {selectedAmount > 0 && `- ${getCurrencySymbol(selectedCurrency)}${selectedAmount}`}
+                        <Heart className={`w-5 h-5 ${isRTL ? "ml-2" : "mr-2"}`} />
+                        {t("donate.completeDonation")}
                       </>
                     )}
                   </Button>
