@@ -374,7 +374,7 @@ export async function registerRoutes(
   });
 
   // Checkout validation schema
-  const donationTypes = ['zakat', 'sadaqah'] as const;
+  const donationTypes = ['zakat', 'sadaqah', 'charity', 'funds'] as const;
   const checkoutSchema = z.object({
     amount: z.number().positive(),
     currency: z.string().toLowerCase().refine((c) => supportedCurrencies.includes(c), {
@@ -425,7 +425,13 @@ export async function registerRoutes(
       const pkrAmount = Math.round(amount * rate);
 
       // Format donation type for display
-      const typeLabel = donationType === 'zakat' ? 'Zakat' : 'Sadaqah';
+      const typeLabels: Record<string, string> = {
+        zakat: 'Zakat',
+        sadaqah: 'Sadaqah',
+        charity: 'Charity',
+        funds: 'Funds'
+      };
+      const typeLabel = typeLabels[donationType] || 'Donation';
       
       // Create checkout session with dynamic price
       const session = await stripe.checkout.sessions.create({

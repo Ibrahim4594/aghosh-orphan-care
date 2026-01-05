@@ -73,7 +73,7 @@ const donationFormSchema = z.object({
   amount: z.number().min(1, "Please enter a valid amount"),
   currency: z.string().default("usd"),
   category: z.string().min(1, "Please select a donation purpose"),
-  donationType: z.enum(["zakat", "sadaqah"]).default("sadaqah"),
+  donationType: z.enum(["zakat", "sadaqah", "charity", "funds"]).default("sadaqah"),
   isAnonymous: z.boolean().default(false),
   message: z.string().optional(),
 });
@@ -300,11 +300,11 @@ export default function DonatePage() {
                         {t("donate.donationType")}
                       </FormLabel>
                       <FormControl>
-                        <div className={`flex gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                           <Button
                             type="button"
                             variant={field.value === "zakat" ? "default" : "outline"}
-                            className="flex-1 h-14"
+                            className="h-16"
                             onClick={() => field.onChange("zakat")}
                             data-testid="button-type-zakat"
                           >
@@ -316,13 +316,37 @@ export default function DonatePage() {
                           <Button
                             type="button"
                             variant={field.value === "sadaqah" ? "default" : "outline"}
-                            className="flex-1 h-14"
+                            className="h-16"
                             onClick={() => field.onChange("sadaqah")}
                             data-testid="button-type-sadaqah"
                           >
                             <div className="flex flex-col items-center gap-0.5">
                               <span className="font-arabic text-base">صَدَقَة</span>
                               <span className="text-xs">{t("donate.sadaqah")}</span>
+                            </div>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant={field.value === "charity" ? "default" : "outline"}
+                            className="h-16"
+                            onClick={() => field.onChange("charity")}
+                            data-testid="button-type-charity"
+                          >
+                            <div className="flex flex-col items-center gap-0.5">
+                              <span className="font-arabic text-base">خَيْرَات</span>
+                              <span className="text-xs">{t("donate.charity")}</span>
+                            </div>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant={field.value === "funds" ? "default" : "outline"}
+                            className="h-16"
+                            onClick={() => field.onChange("funds")}
+                            data-testid="button-type-funds"
+                          >
+                            <div className="flex flex-col items-center gap-0.5">
+                              <span className="font-arabic text-base">فَنْڈز</span>
+                              <span className="text-xs">{t("donate.funds")}</span>
                             </div>
                           </Button>
                         </div>
