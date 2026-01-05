@@ -374,12 +374,14 @@ export async function registerRoutes(
   });
 
   // Checkout validation schema
+  const donationTypes = ['zakat', 'sadaqah'] as const;
   const checkoutSchema = z.object({
     amount: z.number().positive(),
     currency: z.string().toLowerCase().refine((c) => supportedCurrencies.includes(c), {
       message: "Unsupported currency"
     }),
     category: z.enum(donationCategories),
+    donationType: z.enum(donationTypes).default('sadaqah'),
     donorName: z.string().optional(),
     donorEmail: z.string().email().optional().or(z.literal('')),
     isAnonymous: z.boolean().optional().default(false),
@@ -398,7 +400,7 @@ export async function registerRoutes(
         });
       }
 
-      const { amount, currency, category, donorName, donorEmail, isAnonymous, message } = parsed.data;
+      const { amount, currency, category, donationType, donorName, donorEmail, isAnonymous, message } = parsed.data;
 
       // Validate minimum amount for currency
       const minAmount = minimumAmounts[currency] || 5;
@@ -422,6 +424,9 @@ export async function registerRoutes(
       const rate = exchangeRates[currency] || 1;
       const pkrAmount = Math.round(amount * rate);
 
+      // Format donation type for display
+      const typeLabel = donationType === 'zakat' ? 'Zakat' : 'Sadaqah';
+      
       // Create checkout session with dynamic price
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
@@ -430,8 +435,8 @@ export async function registerRoutes(
           price_data: {
             currency: currency.toLowerCase(),
             product_data: {
-              name: `Donation - ${category.charAt(0).toUpperCase() + category.slice(1)}`,
-              description: `Aghosh Orphan Care Home - ${category} support (PKR ${pkrAmount.toLocaleString()} equivalent)`,
+              name: `${typeLabel} - ${category.charAt(0).toUpperCase() + category.slice(1)}`,
+              description: `Aghosh Orphan Care Home - ${typeLabel} for ${category} (PKR ${pkrAmount.toLocaleString()} equivalent)`,
               images: ['https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=400'],
             },
             unit_amount: Math.round(amount * 100),
@@ -440,6 +445,7 @@ export async function registerRoutes(
         }],
         metadata: {
           category,
+          donationType,
           donorName: isAnonymous ? 'Anonymous' : (donorName || 'Anonymous'),
           donorEmail: donorEmail || '',
           isAnonymous: String(isAnonymous),

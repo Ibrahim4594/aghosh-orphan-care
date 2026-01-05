@@ -73,6 +73,7 @@ const donationFormSchema = z.object({
   amount: z.number().min(1, "Please enter a valid amount"),
   currency: z.string().default("usd"),
   category: z.string().min(1, "Please select a donation purpose"),
+  donationType: z.enum(["zakat", "sadaqah"]).default("sadaqah"),
   isAnonymous: z.boolean().default(false),
   message: z.string().optional(),
 });
@@ -125,6 +126,7 @@ export default function DonatePage() {
       amount: 0,
       currency: "usd",
       category: categoryParam || "",
+      donationType: "sadaqah",
       isAnonymous: false,
       message: "",
     },
@@ -161,6 +163,7 @@ export default function DonatePage() {
         amount: data.amount,
         currency: data.currency,
         category: data.category,
+        donationType: data.donationType,
         donorName: data.donorName,
         donorEmail: data.email,
         isAnonymous: data.isAnonymous,
@@ -281,6 +284,47 @@ export default function DonatePage() {
                               </div>
                             );
                           })}
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="donationType"
+                  render={({ field }) => (
+                    <FormItem className={isRTL ? "text-right" : ""}>
+                      <FormLabel className="text-base font-semibold">
+                        {t("donate.donationType")}
+                      </FormLabel>
+                      <FormControl>
+                        <div className={`flex gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
+                          <Button
+                            type="button"
+                            variant={field.value === "zakat" ? "default" : "outline"}
+                            className="flex-1 h-14"
+                            onClick={() => field.onChange("zakat")}
+                            data-testid="button-type-zakat"
+                          >
+                            <div className="flex flex-col items-center gap-0.5">
+                              <span className="font-arabic text-base">زَكَاة</span>
+                              <span className="text-xs">{t("donate.zakat")}</span>
+                            </div>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant={field.value === "sadaqah" ? "default" : "outline"}
+                            className="flex-1 h-14"
+                            onClick={() => field.onChange("sadaqah")}
+                            data-testid="button-type-sadaqah"
+                          >
+                            <div className="flex flex-col items-center gap-0.5">
+                              <span className="font-arabic text-base">صَدَقَة</span>
+                              <span className="text-xs">{t("donate.sadaqah")}</span>
+                            </div>
+                          </Button>
                         </div>
                       </FormControl>
                       <FormMessage />
