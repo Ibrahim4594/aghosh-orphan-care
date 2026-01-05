@@ -64,19 +64,19 @@ const iconMap: Record<string, typeof Heart> = {
 };
 
 const currencies = [
+  { code: "pkr", symbol: "Rs", name: "Pakistani Rupee" },
   { code: "usd", symbol: "$", name: "US Dollar" },
   { code: "cad", symbol: "C$", name: "Canadian Dollar" },
   { code: "gbp", symbol: "£", name: "British Pound" },
   { code: "aed", symbol: "د.إ", name: "UAE Dirham" },
   { code: "eur", symbol: "€", name: "Euro" },
-  { code: "pkr", symbol: "Rs", name: "Pakistani Rupee" },
 ];
 
 const donationFormSchema = z.object({
   donorName: z.string().optional(),
   email: z.string().email("Please enter a valid email").optional().or(z.literal("")),
   amount: z.number().min(1, "Please enter a valid amount"),
-  currency: z.string().default("usd"),
+  currency: z.string().default("pkr"),
   category: z.string().min(1, "Please select a donation purpose"),
   donationType: z.enum(["zakat", "sadaqah", "charity", "funds"]).default("sadaqah"),
   paymentMethod: z.enum(["card", "bank"]).default("card"),
@@ -86,7 +86,8 @@ const donationFormSchema = z.object({
 
 type DonationFormData = z.infer<typeof donationFormSchema>;
 
-const presetAmounts = [25, 50, 100, 250, 500, 1000];
+const presetAmountsPKR = [500, 1000, 2500, 5000, 10000, 25000];
+const presetAmountsOther = [25, 50, 100, 250, 500, 1000];
 
 function DonateForm() {
   const { t, isRTL } = useLanguage();
@@ -135,7 +136,7 @@ function DonateForm() {
       donorName: "",
       email: "",
       amount: 0,
-      currency: "usd",
+      currency: "pkr",
       category: categoryParam || "",
       donationType: "sadaqah",
       paymentMethod: "card",
@@ -473,7 +474,7 @@ function DonateForm() {
                         <FormControl>
                           <div className="space-y-4">
                             <div className="grid grid-cols-3 gap-2">
-                              {presetAmounts.map((amount) => (
+                              {(selectedCurrency === 'pkr' ? presetAmountsPKR : presetAmountsOther).map((amount) => (
                                 <Button
                                   key={amount}
                                   type="button"
@@ -499,7 +500,7 @@ function DonateForm() {
                                 data-testid="input-custom-amount"
                               />
                             </div>
-                            {selectedAmount > 0 && (
+                            {selectedAmount > 0 && selectedCurrency !== 'pkr' && (
                               <div className={`p-3 bg-secondary/10 rounded-md border border-secondary/20 ${isRTL ? "text-right" : ""}`}>
                                 <p className="text-sm text-muted-foreground">
                                   {t("donate.pkrEquivalent")}:
