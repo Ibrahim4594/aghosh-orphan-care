@@ -1,0 +1,133 @@
+Build a full-stack Orphan Care Home Donation & Management App inspired by Aghosh Orphan Care Home under the Minhaj Welfare Foundation.
+
+The app should provide a secure, user-friendly platform where individuals can learn about orphan care initiatives and donate for specific purposes such as healthcare, education, food, clothing, shelter, and general welfare.
+
+🌍 App Purpose
+
+The goal of this app is to support orphaned and vulnerable children by enabling transparent donations and sharing impact updates. The app should reflect humanitarian, ethical, and Islamic values, starting with a welcoming “Assalamu Alaikum” greeting.
+
+👤 User Roles
+
+Donor (Public User)
+
+Admin (Organization Staff)
+
+👥 Donor Features
+
+Home page introducing the orphan care mission and values
+
+Information pages explaining:
+
+Orphan Care Program
+
+Education & Quran Learning
+
+Healthcare & Medical Support
+
+Food, Clothing & Shelter
+
+Donation system with selectable purposes:
+
+Health & Medical Care
+
+Education & Schooling
+
+Food & Nutrition
+
+Clothing & Daily Needs
+
+General Donation
+
+Donation form with:
+
+Donor name (optional anonymous donation)
+
+Donation amount
+
+Purpose selection
+
+Payment method (mock or integrated)
+
+Confirmation screen after successful donation
+
+Donation receipt generation (simple receipt or email message)
+
+Impact section showing:
+
+Stories
+
+Photos (placeholder)
+
+Statistics (number of children supported)
+
+🔐 Admin Features
+
+Secure admin login
+
+Dashboard showing:
+
+Total donations
+
+Donations by category
+
+Recent donors
+
+Ability to:
+
+Add or update orphan care programs
+
+Post updates and impact stories
+
+Manage donation categories
+
+🧠 Technical Requirements
+
+Frontend:
+
+Clean, responsive UI
+
+Simple, professional design
+
+Accessible on mobile and desktop
+
+Backend:
+
+Store donation records securely
+
+Handle user input validation
+
+Database:
+
+Donations
+
+Programs
+
+Admin users
+
+Authentication:
+
+Admin login only (donors don’t need accounts)
+
+🕌 Design & Tone
+
+Respectful, humanitarian, and Islamic tone
+
+Start app with “Assalamu Alaikum”
+
+Simple language suitable for all users
+
+Emphasis on transparency and trust
+
+🔧 Extras (Optional but Recommended)
+
+Dark mode
+
+Donation progress bars
+
+Multi-language support (English/Urdu later)
+
+Contact & Support page
+
+🎯 Final Goal
+
+Create a complete, scalable, and ethical donation app that helps orphan care homes raise funds efficiently while maintaining transparency, trust, and compassion.
