@@ -52,6 +52,8 @@ import { useLanguage } from "@/lib/i18n";
 import { type DonationCategory } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 
 const iconMap: Record<string, typeof Heart> = {
   Heart,
@@ -86,7 +88,7 @@ type DonationFormData = z.infer<typeof donationFormSchema>;
 
 const presetAmounts = [25, 50, 100, 250, 500, 1000];
 
-export default function DonatePage() {
+function DonateForm() {
   const { t, isRTL } = useLanguage();
   const searchString = useSearch();
   const params = new URLSearchParams(searchString);
@@ -96,8 +98,13 @@ export default function DonatePage() {
   const [customAmount, setCustomAmount] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
   const [donationResult, setDonationResult] = useState<any>(null);
+  const [cardError, setCardError] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  
+  const stripe = useStripe();
+  const elements = useElements();
 
   const ArrowIcon = isRTL ? ArrowLeft : ArrowRight;
 
@@ -162,9 +169,9 @@ export default function DonatePage() {
     }
   };
 
-  const checkoutMutation = useMutation({
+  const createPaymentIntentMutation = useMutation({
     mutationFn: async (data: DonationFormData) => {
-      const response = await apiRequest("POST", "/api/donate/checkout", {
+      const response = await apiRequest("POST", "/api/donate/create-payment-intent", {
         amount: data.amount,
         currency: data.currency,
         category: data.category,
@@ -176,25 +183,82 @@ export default function DonatePage() {
       });
       return response.json();
     },
-    onSuccess: (data) => {
-      if (data.url) {
-        window.location.href = data.url;
+  });
+
+  const onSubmit = async (data: DonationFormData) => {
+    if (data.isAnonymous) {
+      data.donorName = undefined;
+    }
+
+    if (data.paymentMethod === "bank") {
+      toast({
+        title: t("donate.bankTransfer"),
+        description: t("donate.bankNote"),
+      });
+      return;
+    }
+
+    if (!stripe || !elements) {
+      toast({
+        title: t("donate.donationFailed"),
+        description: "Payment system not ready. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsProcessing(true);
+    setCardError(null);
+
+    try {
+      const intentData = await createPaymentIntentMutation.mutateAsync(data);
+      
+      if (!intentData.clientSecret) {
+        throw new Error("Failed to create payment");
       }
-    },
-    onError: (error: Error) => {
+
+      const cardElement = elements.getElement(CardElement);
+      if (!cardElement) {
+        throw new Error("Card element not found");
+      }
+
+      const { error, paymentIntent } = await stripe.confirmCardPayment(intentData.clientSecret, {
+        payment_method: {
+          card: cardElement,
+          billing_details: {
+            name: data.donorName || undefined,
+            email: data.email || undefined,
+          },
+        },
+      });
+
+      if (error) {
+        setCardError(error.message || "Payment failed");
+        toast({
+          title: t("donate.donationFailed"),
+          description: error.message || t("donate.tryAgain"),
+          variant: "destructive",
+        });
+      } else if (paymentIntent?.status === "succeeded") {
+        const confirmResponse = await apiRequest("POST", "/api/donate/confirm-payment", {
+          paymentIntentId: paymentIntent.id,
+        });
+        const confirmData = await confirmResponse.json();
+        
+        if (confirmData.success) {
+          setDonationResult(confirmData);
+          setShowSuccess(true);
+        }
+      }
+    } catch (error: any) {
       toast({
         title: t("donate.donationFailed"),
         description: error.message || t("donate.tryAgain"),
         variant: "destructive",
       });
-    },
-  });
-
-  const onSubmit = (data: DonationFormData) => {
-    if (data.isAnonymous) {
-      data.donorName = undefined;
+    } finally {
+      setIsProcessing(false);
     }
-    checkoutMutation.mutate(data);
   };
 
   const handleAmountSelect = (amount: number) => {
@@ -494,6 +558,41 @@ export default function DonatePage() {
                   )}
                 />
 
+                {paymentMethod === "card" && (
+                  <div className={`space-y-2 ${isRTL ? "text-right" : ""}`}>
+                    <Label className="text-base font-semibold">{t("donate.cardDetails")}</Label>
+                    <div className="p-4 border rounded-md bg-background">
+                      <CardElement 
+                        options={{
+                          style: {
+                            base: {
+                              fontSize: '16px',
+                              color: 'hsl(var(--foreground))',
+                              '::placeholder': {
+                                color: 'hsl(var(--muted-foreground))',
+                              },
+                            },
+                            invalid: {
+                              color: 'hsl(var(--destructive))',
+                            },
+                          },
+                          hidePostalCode: true,
+                        }}
+                        onChange={(e) => {
+                          if (e.error) {
+                            setCardError(e.error.message);
+                          } else {
+                            setCardError(null);
+                          }
+                        }}
+                      />
+                    </div>
+                    {cardError && (
+                      <p className="text-sm text-destructive">{cardError}</p>
+                    )}
+                  </div>
+                )}
+
                 {paymentMethod === "bank" && (
                   <div className={`p-4 bg-accent/50 rounded-md border ${isRTL ? "text-right" : ""}`}>
                     <h4 className="font-semibold mb-3">{t("donate.bankDetails")}</h4>
@@ -619,10 +718,10 @@ export default function DonatePage() {
                     type="submit" 
                     size="lg" 
                     className="w-full"
-                    disabled={checkoutMutation.isPending}
+                    disabled={isProcessing || !stripe}
                     data-testid="button-complete-donation"
                   >
-                    {checkoutMutation.isPending ? (
+                    {isProcessing ? (
                       <>
                         <Loader2 className={`w-5 h-5 animate-spin ${isRTL ? "ml-2" : "mr-2"}`} />
                         {t("donate.processing")}
@@ -697,5 +796,37 @@ export default function DonatePage() {
         </Dialog>
       </div>
     </main>
+  );
+}
+
+export default function DonatePage() {
+  const [stripePromise, setStripePromise] = useState<ReturnType<typeof loadStripe> | null>(null);
+
+  useEffect(() => {
+    fetch("/api/stripe/publishable-key")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.publishableKey) {
+          setStripePromise(loadStripe(data.publishableKey));
+        }
+      })
+      .catch((err) => console.error("Failed to load Stripe key:", err));
+  }, []);
+
+  if (!stripePromise) {
+    return (
+      <main className="py-12 md:py-20">
+        <div className="max-w-3xl mx-auto px-4 text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading payment system...</p>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <Elements stripe={stripePromise}>
+      <DonateForm />
+    </Elements>
   );
 }

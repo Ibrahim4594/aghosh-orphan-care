@@ -476,7 +476,130 @@ export async function registerRoutes(
     }
   });
 
+  // Create PaymentIntent for embedded card payments
+  app.post("/api/donate/create-payment-intent", async (req: Request, res: Response) => {
+    try {
+      const parsed = checkoutSchema.safeParse(req.body);
+      
+      if (!parsed.success) {
+        return res.status(400).json({ 
+          message: "Invalid donation data", 
+          errors: parsed.error.errors 
+        });
+      }
+
+      const { amount, currency, category, donationType, donorName, donorEmail, isAnonymous, message } = parsed.data;
+
+      // Validate minimum amount for currency
+      const minAmount = minimumAmounts[currency] || 5;
+      if (amount < minAmount) {
+        return res.status(400).json({ 
+          message: `Minimum donation in ${currency.toUpperCase()} is ${minAmount}` 
+        });
+      }
+
+      // Cap maximum to prevent abuse
+      const maxAmount = 100000;
+      if (amount > maxAmount) {
+        return res.status(400).json({ 
+          message: `Maximum donation is ${maxAmount} ${currency.toUpperCase()}. For larger donations, please contact us.` 
+        });
+      }
+
+      const stripe = await getUncachableStripeClient();
+
+      // Calculate PKR equivalent server-side
+      const rate = exchangeRates[currency] || 1;
+      const pkrAmount = Math.round(amount * rate);
+
+      // Format donation type for display
+      const typeLabels: Record<string, string> = {
+        zakat: 'Zakat',
+        sadaqah: 'Sadaqah',
+        charity: 'Charity',
+        funds: 'Funds'
+      };
+      const typeLabel = typeLabels[donationType] || 'Donation';
+      
+      // Create PaymentIntent for embedded payment
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(amount * 100),
+        currency: currency.toLowerCase(),
+        metadata: {
+          category,
+          donationType,
+          donorName: isAnonymous ? 'Anonymous' : (donorName || 'Anonymous'),
+          donorEmail: donorEmail || '',
+          isAnonymous: String(isAnonymous),
+          message: message || '',
+          pkrEquivalent: String(pkrAmount),
+          originalCurrency: currency,
+          originalAmount: String(amount),
+        },
+        description: `Aghosh Orphan Care Home - ${typeLabel} for ${category} (PKR ${pkrAmount.toLocaleString()})`,
+        receipt_email: donorEmail || undefined,
+      });
+
+      res.json({ 
+        clientSecret: paymentIntent.client_secret,
+        paymentIntentId: paymentIntent.id,
+        pkrEquivalent: pkrAmount 
+      });
+    } catch (error: any) {
+      console.error('PaymentIntent error:', error);
+      res.status(500).json({ message: "Failed to create payment intent" });
+    }
+  });
+
+  // Confirm payment was successful and record donation
+  app.post("/api/donate/confirm-payment", async (req: Request, res: Response) => {
+    try {
+      const { paymentIntentId } = req.body;
+      
+      if (!paymentIntentId || typeof paymentIntentId !== 'string') {
+        return res.status(400).json({ message: "Invalid payment intent ID" });
+      }
+      
+      const stripe = await getUncachableStripeClient();
+      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+      
+      if (paymentIntent.status === 'succeeded') {
+        const metadata = paymentIntent.metadata || {};
+        
+        // Only record donation once per payment (idempotency)
+        if (!processedPayments.has(paymentIntentId)) {
+          processedPayments.add(paymentIntentId);
+          
+          await storage.createDonation({
+            donorName: metadata.donorName || 'Anonymous',
+            email: metadata.donorEmail || null,
+            amount: parseInt(metadata.pkrEquivalent || '0'),
+            category: metadata.category as any || 'general',
+            paymentMethod: 'card',
+            isAnonymous: metadata.isAnonymous === 'true',
+          });
+        }
+
+        res.json({ 
+          success: true, 
+          amount: paymentIntent.amount / 100,
+          currency: paymentIntent.currency?.toUpperCase(),
+          pkrEquivalent: parseInt(metadata.pkrEquivalent || '0'),
+          category: metadata.category,
+          donorName: metadata.isAnonymous === 'true' ? 'Anonymous' : metadata.donorName,
+          donationType: metadata.donationType,
+        });
+      } else {
+        res.json({ success: false, status: paymentIntent.status });
+      }
+    } catch (error: any) {
+      console.error('Confirm payment error:', error.message);
+      res.status(500).json({ message: "Failed to verify payment" });
+    }
+  });
+
   // Track processed sessions to prevent duplicate donation records
+  const processedPayments = new Set<string>();
   const processedSessions = new Set<string>();
 
   // Verify donation success
