@@ -15,11 +15,11 @@ export function HeroSection() {
       
       <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
       
-      <div className="relative z-10 max-w-7xl mx-auto px-4 py-20 md:py-32 text-center">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 py-16 md:py-32 text-center">
         <img 
           src={aghoshLogo} 
           alt="Aghosh Orphan Care Home" 
-          className="h-24 w-24 md:h-32 md:w-32 object-contain mx-auto mb-6 rounded-lg"
+          className="h-20 w-20 sm:h-24 sm:w-24 md:h-32 md:w-32 object-contain mx-auto mb-6 rounded-lg"
           data-testid="img-hero-logo"
         />
         
@@ -35,19 +35,19 @@ export function HeroSection() {
         </h1>
         
         <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 sm:mb-10 leading-relaxed px-2" data-testid="text-hero-description">
-          Aghosh Orphan Care Home by Minhaj Welfare Foundation provides shelter, quality education, 
-          healthcare, and spiritual guidance. Help us turn orphans into socially productive human beings.
+          Aghosh by Minhaj Welfare Foundation provides shelter, Hifz-e-Quran, 
+          modern education, healthcare and turns orphans into socially productive human beings.
         </p>
         
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
           <Link href="/donate">
-            <Button size="lg" className="min-w-[180px]" data-testid="button-hero-donate">
+            <Button size="lg" className="w-full sm:w-auto min-w-[160px]" data-testid="button-hero-donate">
               <Heart className="w-5 h-5 mr-2" />
               Donate Now
             </Button>
           </Link>
           <Link href="/about">
-            <Button variant="outline" size="lg" className="min-w-[180px]" data-testid="button-hero-learn-more">
+            <Button variant="outline" size="lg" className="w-full sm:w-auto min-w-[160px]" data-testid="button-hero-learn-more">
               Learn Our Story
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
@@ -56,13 +56,13 @@ export function HeroSection() {
         
         <div className="mt-12 md:mt-16 grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 max-w-3xl mx-auto">
           {[
-            { number: "500+", label: "Children Supported" },
-            { number: "15+", label: "Years of Service" },
-            { number: "50K+", label: "Meals Provided" },
+            { number: "500+", label: "Orphans Supported" },
+            { number: "34", label: "Residential Blocks" },
+            { number: "Rs.6,500", label: "Monthly Sponsorship" },
             { number: "100%", label: "Transparency" },
           ].map((stat, index) => (
             <div key={index} className="text-center p-3 md:p-0" data-testid={`stat-${index}`}>
-              <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-primary">{stat.number}</p>
+              <p className="text-xl sm:text-2xl md:text-3xl font-bold text-primary">{stat.number}</p>
               <p className="text-xs sm:text-sm text-muted-foreground mt-1">{stat.label}</p>
             </div>
           ))}

@@ -66,7 +66,7 @@ export function Footer() {
             <ul className="space-y-3 text-sm">
               <li className="flex items-start gap-3 text-muted-foreground">
                 <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <span>Shah Jillani Road, Township, Lahore, Pakistan</span>
+                <span>Near Jamia-al-Minhaj, Shah Jillani Road, Township, Lahore, Pakistan</span>
               </li>
               <li className="flex items-center gap-3 text-muted-foreground">
                 <Phone className="w-4 h-4 flex-shrink-0" />

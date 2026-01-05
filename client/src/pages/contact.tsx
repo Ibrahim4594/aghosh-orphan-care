@@ -105,8 +105,8 @@ export default function ContactPage() {
                     <h3 className="font-semibold mb-1">Address</h3>
                     <p className="text-sm text-muted-foreground leading-relaxed">
                       Aghosh Orphan Care Home<br />
-                      Minhaj Welfare Foundation<br />
-                      365-M, Model Town<br />
+                      Near Jamia-al-Minhaj<br />
+                      Shah Jillani Road, Township<br />
                       Lahore, Pakistan
                     </p>
                   </div>
@@ -140,8 +140,8 @@ export default function ContactPage() {
                   <div>
                     <h3 className="font-semibold mb-1">Email</h3>
                     <p className="text-sm text-muted-foreground">
-                      info@aghosh.org<br />
-                      donations@aghosh.org
+                      info@welfare.org.pk<br />
+                      info@minhaj.org
                     </p>
                   </div>
                 </div>
