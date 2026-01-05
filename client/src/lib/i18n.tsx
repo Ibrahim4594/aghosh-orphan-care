@@ -29,6 +29,7 @@ const translations: Record<Language, Translations> = {
     "hero.residentialBlocks": "Residential Blocks",
     "hero.monthlySponsorship": "Monthly Sponsorship",
     "hero.transparency": "Transparency",
+    "hero.quranRef": "Surah Ad-Duha 93:9 - So do not oppress the orphan",
     
     // Mission Section
     "mission.label": "Our Mission",
@@ -313,6 +314,7 @@ const translations: Record<Language, Translations> = {
     "hero.residentialBlocks": "رہائشی بلاکس",
     "hero.monthlySponsorship": "ماہانہ کفالت",
     "hero.transparency": "شفافیت",
+    "hero.quranRef": "سورۃ الضحیٰ 93:9 - یتیم پر سختی نہ کرو",
     
     // Mission Section
     "mission.label": "ہمارا مشن",

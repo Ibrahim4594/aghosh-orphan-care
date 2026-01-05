@@ -29,9 +29,12 @@ export function HeroSection() {
           />
         </div>
         
-        <div className={`mb-6 inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full bg-primary/10 border border-primary/20 ${isRTL ? "flex-row-reverse" : ""}`}>
-          <span className="font-arabic text-base sm:text-lg">السَّلَامُ عَلَيْكُمْ</span>
-          <span className="text-xs sm:text-sm text-muted-foreground">{t("hero.greeting")}</span>
+        <div className="mb-6 text-center">
+          <p className="font-arabic text-xl sm:text-2xl md:text-3xl mb-3">السَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللهِ وَبَرَكَاتُهُ</p>
+          <p className="font-arabic text-sm sm:text-base md:text-lg text-muted-foreground px-4">
+            فَأَمَّا الْيَتِيمَ فَلَا تَقْهَرْ
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">{t("hero.quranRef")}</p>
         </div>
         
         <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-4 max-w-4xl mx-auto px-2" data-testid="text-hero-title">
