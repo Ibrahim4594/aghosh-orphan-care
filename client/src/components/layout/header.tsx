@@ -1,18 +1,16 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Menu, X, Heart, User, LogOut } from "lucide-react";
+import { Menu, X, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
 import { useLanguage } from "@/lib/i18n";
-import { useAuth } from "@/hooks/use-auth";
 import aghoshLogo from "@assets/Aghosh-Karachi-Minhaj-Welfare-Foundation-Pakistan_05_1767633857577.jpg";
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [location] = useLocation();
   const { t, isRTL } = useLanguage();
-  const { user, isLoading, isAuthenticated } = useAuth();
 
   const navLinks = [
     { href: "/", labelKey: "nav.home" },
@@ -57,29 +55,6 @@ export function Header() {
           <div className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
             <LanguageToggle />
             <ThemeToggle />
-            
-            {!isLoading && (
-              isAuthenticated ? (
-                <div className="hidden sm:flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">
-                    {user?.firstName || user?.email?.split('@')[0] || 'Donor'}
-                  </span>
-                  <a href="/api/logout">
-                    <Button variant="outline" size="sm" data-testid="button-logout">
-                      <LogOut className="w-4 h-4" />
-                    </Button>
-                  </a>
-                </div>
-              ) : (
-                <a href="/api/login" className="hidden sm:block">
-                  <Button variant="outline" data-testid="button-login">
-                    <User className={`w-4 h-4 ${isRTL ? "ml-2" : "mr-2"}`} />
-                    {t("nav.login")}
-                  </Button>
-                </a>
-              )
-            )}
-            
             <Link href="/donate" className="hidden sm:block">
               <Button data-testid="button-donate-header">
                 <Heart className={`w-4 h-4 ${isRTL ? "ml-2" : "mr-2"}`} />
@@ -119,24 +94,6 @@ export function Header() {
                   {t("nav.donateNow")}
                 </Button>
               </Link>
-              
-              {!isLoading && (
-                isAuthenticated ? (
-                  <a href="/api/logout" className="w-full">
-                    <Button variant="outline" className="w-full mt-2" onClick={() => setIsMenuOpen(false)}>
-                      <LogOut className={`w-4 h-4 ${isRTL ? "ml-2" : "mr-2"}`} />
-                      {t("nav.logout")}
-                    </Button>
-                  </a>
-                ) : (
-                  <a href="/api/login" className="w-full">
-                    <Button variant="outline" className="w-full mt-2" onClick={() => setIsMenuOpen(false)}>
-                      <User className={`w-4 h-4 ${isRTL ? "ml-2" : "mr-2"}`} />
-                      {t("nav.login")}
-                    </Button>
-                  </a>
-                )
-              )}
             </div>
           </nav>
         )}

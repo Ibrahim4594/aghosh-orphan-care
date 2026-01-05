@@ -16,8 +16,6 @@ const translations: Record<Language, Translations> = {
     "nav.impact": "Impact",
     "nav.contact": "Contact",
     "nav.donateNow": "Donate Now",
-    "nav.login": "Login",
-    "nav.logout": "Logout",
     
     // Hero
     "hero.greeting": "Peace be upon you",
@@ -322,8 +320,6 @@ const translations: Record<Language, Translations> = {
     "nav.impact": "اثرات",
     "nav.contact": "رابطہ",
     "nav.donateNow": "ابھی عطیہ دیں",
-    "nav.login": "لاگ ان",
-    "nav.logout": "لاگ آؤٹ",
     
     // Hero
     "hero.greeting": "السلام علیکم",

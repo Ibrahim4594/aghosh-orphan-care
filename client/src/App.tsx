@@ -8,7 +8,6 @@ import { LanguageProvider } from "@/lib/i18n";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { MobileBottomNav } from "@/components/layout/mobile-nav";
-import { useAuth } from "@/hooks/use-auth";
 import HomePage from "@/pages/home";
 import AboutPage from "@/pages/about";
 import ProgramsPage from "@/pages/programs";
@@ -18,42 +17,15 @@ import ContactPage from "@/pages/contact";
 import AdminLoginPage from "@/pages/admin/login";
 import AdminDashboardPage from "@/pages/admin/dashboard";
 import NotFound from "@/pages/not-found";
-import { useEffect } from "react";
-
-function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth();
-  
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      window.location.href = "/api/login";
-    }
-  }, [isAuthenticated, isLoading]);
-  
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-  
-  if (!isAuthenticated) {
-    return null;
-  }
-  
-  return <>{children}</>;
-}
 
 function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
-    <AuthGuard>
-      <div className="min-h-screen flex flex-col">
-        <Header />
-        <div className="flex-1 pb-20 md:pb-0">{children}</div>
-        <Footer />
-        <MobileBottomNav />
-      </div>
-    </AuthGuard>
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      <div className="flex-1 pb-20 md:pb-0">{children}</div>
+      <Footer />
+      <MobileBottomNav />
+    </div>
   );
 }
 
