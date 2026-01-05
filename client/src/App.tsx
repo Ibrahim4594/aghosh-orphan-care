@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/lib/theme-provider";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
+import { MobileBottomNav } from "@/components/layout/mobile-nav";
 import HomePage from "@/pages/home";
 import AboutPage from "@/pages/about";
 import ProgramsPage from "@/pages/programs";
@@ -20,8 +21,9 @@ function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <div className="flex-1">{children}</div>
+      <div className="flex-1 pb-20 md:pb-0">{children}</div>
       <Footer />
+      <MobileBottomNav />
     </div>
   );
 }
