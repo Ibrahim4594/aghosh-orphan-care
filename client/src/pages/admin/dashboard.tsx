@@ -262,38 +262,40 @@ export default function AdminDashboardPage() {
                     No donations yet
                   </div>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Donor</TableHead>
-                        <TableHead>Category</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Date</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {recentDonations.map((donation) => (
-                        <TableRow key={donation.id} data-testid={`row-donation-${donation.id}`}>
-                          <TableCell>
-                            {donation.isAnonymous ? (
-                              <span className="text-muted-foreground italic">Anonymous</span>
-                            ) : (
-                              donation.donorName || "N/A"
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="secondary">
-                              {getCategoryLabel(donation.category)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="font-medium">${donation.amount}</TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {formatDate(donation.createdAt)}
-                          </TableCell>
+                  <div className="overflow-x-auto -mx-6 px-6">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="min-w-[120px]">Donor</TableHead>
+                          <TableHead className="min-w-[100px]">Category</TableHead>
+                          <TableHead className="min-w-[80px]">Amount</TableHead>
+                          <TableHead className="min-w-[100px]">Date</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {recentDonations.map((donation) => (
+                          <TableRow key={donation.id} data-testid={`row-donation-${donation.id}`}>
+                            <TableCell>
+                              {donation.isAnonymous ? (
+                                <span className="text-muted-foreground italic">Anonymous</span>
+                              ) : (
+                                donation.donorName || "N/A"
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="secondary">
+                                {getCategoryLabel(donation.category)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="font-medium">${donation.amount}</TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {formatDate(donation.createdAt)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 )}
               </CardContent>
             </Card>

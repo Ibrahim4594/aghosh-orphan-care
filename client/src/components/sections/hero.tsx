@@ -23,18 +23,18 @@ export function HeroSection() {
           data-testid="img-hero-logo"
         />
         
-        <div className="mb-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
-          <span className="font-arabic text-lg">السَّلَامُ عَلَيْكُمْ</span>
-          <span className="text-sm text-muted-foreground">Peace be upon you</span>
+        <div className="mb-6 inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
+          <span className="font-arabic text-base sm:text-lg">السَّلَامُ عَلَيْكُمْ</span>
+          <span className="text-xs sm:text-sm text-muted-foreground">Peace be upon you</span>
         </div>
         
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6 max-w-4xl mx-auto" data-testid="text-hero-title">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6 max-w-4xl mx-auto px-2" data-testid="text-hero-title">
           Embrace Orphaned Children with{" "}
           <span className="text-primary">Love</span> &{" "}
           <span className="text-secondary">Care</span>
         </h1>
         
-        <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed" data-testid="text-hero-description">
+        <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 sm:mb-10 leading-relaxed px-2" data-testid="text-hero-description">
           Aghosh Orphan Care Home by Minhaj Welfare Foundation provides shelter, quality education, 
           healthcare, and spiritual guidance. Help us turn orphans into socially productive human beings.
         </p>
@@ -54,16 +54,16 @@ export function HeroSection() {
           </Link>
         </div>
         
-        <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8 max-w-3xl mx-auto">
+        <div className="mt-12 md:mt-16 grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 max-w-3xl mx-auto">
           {[
             { number: "500+", label: "Children Supported" },
             { number: "15+", label: "Years of Service" },
             { number: "50K+", label: "Meals Provided" },
             { number: "100%", label: "Transparency" },
           ].map((stat, index) => (
-            <div key={index} className="text-center" data-testid={`stat-${index}`}>
-              <p className="text-3xl md:text-4xl font-bold text-primary">{stat.number}</p>
-              <p className="text-sm text-muted-foreground mt-1">{stat.label}</p>
+            <div key={index} className="text-center p-3 md:p-0" data-testid={`stat-${index}`}>
+              <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-primary">{stat.number}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">{stat.label}</p>
             </div>
           ))}
         </div>

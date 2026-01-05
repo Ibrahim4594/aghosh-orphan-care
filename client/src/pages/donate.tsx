@@ -228,13 +228,13 @@ export default function DonatePage() {
                       </FormLabel>
                       <FormControl>
                         <div className="space-y-4">
-                          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                          <div className="grid grid-cols-3 gap-2">
                             {presetAmounts.map((amount) => (
                               <Button
                                 key={amount}
                                 type="button"
                                 variant={selectedAmount === amount && !customAmount ? "default" : "outline"}
-                                className="h-12"
+                                className="h-11 text-sm sm:text-base"
                                 onClick={() => handleAmountSelect(amount)}
                                 data-testid={`button-amount-${amount}`}
                               >
@@ -336,7 +336,7 @@ export default function DonatePage() {
                         <RadioGroup
                           onValueChange={field.onChange}
                           value={field.value}
-                          className="grid grid-cols-1 sm:grid-cols-3 gap-3"
+                          className="grid grid-cols-1 gap-3"
                         >
                           {paymentMethods.map((method) => {
                             const Icon = method.icon;
@@ -353,7 +353,7 @@ export default function DonatePage() {
                                 data-testid={`option-payment-${method.id}`}
                               >
                                 <RadioGroupItem value={method.id} className="sr-only" />
-                                <Icon className={`w-5 h-5 ${field.value === method.id ? "text-primary" : "text-muted-foreground"}`} />
+                                <Icon className={`w-5 h-5 flex-shrink-0 ${field.value === method.id ? "text-primary" : "text-muted-foreground"}`} />
                                 <span className="text-sm font-medium">{method.label}</span>
                               </Label>
                             );
@@ -365,13 +365,13 @@ export default function DonatePage() {
                   )}
                 />
 
-                <div className="flex items-center justify-center gap-6 py-4 text-sm text-muted-foreground">
+                <div className="flex items-center justify-center gap-4 sm:gap-6 py-4 text-xs sm:text-sm text-muted-foreground flex-wrap">
                   <div className="flex items-center gap-2">
-                    <Shield className="w-4 h-4" />
+                    <Shield className="w-4 h-4 flex-shrink-0" />
                     <span>Secure Payment</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Lock className="w-4 h-4" />
+                    <Lock className="w-4 h-4 flex-shrink-0" />
                     <span>256-bit Encryption</span>
                   </div>
                 </div>
