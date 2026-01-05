@@ -29,7 +29,7 @@ const translations: Record<Language, Translations> = {
     "hero.residentialBlocks": "Residential Blocks",
     "hero.monthlySponsorship": "Monthly Sponsorship",
     "hero.transparency": "Transparency",
-    "hero.quranRef": "Surah Ad-Duha 93:9 - So do not oppress the orphan",
+    "hero.quranRef": "Surah Al-Insan 76:8 - They give food, in spite of their love for it, to the needy, the orphan, and the captive",
     
     // Mission Section
     "mission.label": "Our Mission",
@@ -314,7 +314,7 @@ const translations: Record<Language, Translations> = {
     "hero.residentialBlocks": "رہائشی بلاکس",
     "hero.monthlySponsorship": "ماہانہ کفالت",
     "hero.transparency": "شفافیت",
-    "hero.quranRef": "سورۃ الضحیٰ 93:9 - یتیم پر سختی نہ کرو",
+    "hero.quranRef": "سورۃ الانسان 76:8 - وہ کھانا کھلاتے ہیں اس کی محبت کے باوجود مسکین، یتیم اور قیدی کو",
     
     // Mission Section
     "mission.label": "ہمارا مشن",

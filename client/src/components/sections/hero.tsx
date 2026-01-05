@@ -32,7 +32,7 @@ export function HeroSection() {
         <div className="mb-6 text-center">
           <p className="font-arabic text-xl sm:text-2xl md:text-3xl mb-3">السَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللهِ وَبَرَكَاتُهُ</p>
           <p className="font-arabic text-xl sm:text-2xl md:text-3xl text-primary px-4 mb-2">
-            فَأَمَّا الْيَتِيمَ فَلَا تَقْهَرْ
+            وَيُطْعِمُونَ الطَّعَامَ عَلَىٰ حُبِّهِ مِسْكِينًا وَيَتِيمًا وَأَسِيرًا
           </p>
           <p className="text-sm text-muted-foreground">{t("hero.quranRef")}</p>
         </div>
