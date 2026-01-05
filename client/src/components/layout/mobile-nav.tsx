@@ -1,20 +1,22 @@
 import { Link, useLocation } from "wouter";
 import { Home, Info, Heart, Sparkles, Phone } from "lucide-react";
-
-const navItems = [
-  { href: "/", label: "Home", icon: Home },
-  { href: "/about", label: "About", icon: Info },
-  { href: "/donate", label: "Donate", icon: Heart },
-  { href: "/impact", label: "Impact", icon: Sparkles },
-  { href: "/contact", label: "Contact", icon: Phone },
-];
+import { useLanguage } from "@/lib/i18n";
 
 export function MobileBottomNav() {
   const [location] = useLocation();
+  const { t, isRTL } = useLanguage();
+
+  const navItems = [
+    { href: "/", labelKey: "nav.home", icon: Home },
+    { href: "/about", labelKey: "nav.about", icon: Info },
+    { href: "/donate", labelKey: "nav.donate", icon: Heart },
+    { href: "/impact", labelKey: "nav.impact", icon: Sparkles },
+    { href: "/contact", labelKey: "nav.contact", icon: Phone },
+  ];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t md:hidden safe-area-bottom">
-      <div className="flex items-center justify-around h-16">
+      <div className={`flex items-center justify-around h-16 ${isRTL ? "flex-row-reverse" : ""}`}>
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = location === item.href;
@@ -30,12 +32,12 @@ export function MobileBottomNav() {
                       ? "text-primary" 
                       : "text-muted-foreground"
                 }`}
-                data-testid={`mobile-nav-${item.label.toLowerCase()}`}
+                data-testid={`mobile-nav-${item.labelKey.split('.')[1]}`}
               >
                 <div className={`${isDonate ? "bg-primary text-primary-foreground rounded-full p-2 -mt-4 shadow-lg" : ""}`}>
-                  <Icon className={`${isDonate ? "w-5 h-5" : "w-5 h-5"}`} />
+                  <Icon className="w-5 h-5" />
                 </div>
-                <span className={`text-[10px] mt-1 ${isDonate ? "font-medium" : ""}`}>{item.label}</span>
+                <span className={`text-[10px] mt-1 ${isDonate ? "font-medium" : ""}`}>{t(item.labelKey)}</span>
               </button>
             </Link>
           );

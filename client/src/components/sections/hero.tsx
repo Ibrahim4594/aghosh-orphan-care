@@ -1,9 +1,13 @@
 import { Link } from "wouter";
-import { Heart, ArrowRight } from "lucide-react";
+import { Heart, ArrowRight, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/lib/i18n";
 import aghoshLogo from "@assets/Aghosh-Karachi-Minhaj-Welfare-Foundation-Pakistan_05_1767633857577.jpg";
 
 export function HeroSection() {
+  const { t, isRTL } = useLanguage();
+  const ArrowIcon = isRTL ? ArrowLeft : ArrowRight;
+
   return (
     <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden">
       <div 
@@ -23,47 +27,46 @@ export function HeroSection() {
           data-testid="img-hero-logo"
         />
         
-        <div className="mb-6 inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
+        <div className={`mb-6 inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full bg-primary/10 border border-primary/20 ${isRTL ? "flex-row-reverse" : ""}`}>
           <span className="font-arabic text-base sm:text-lg">السَّلَامُ عَلَيْكُمْ</span>
-          <span className="text-xs sm:text-sm text-muted-foreground">Peace be upon you</span>
+          <span className="text-xs sm:text-sm text-muted-foreground">{t("hero.greeting")}</span>
         </div>
         
         <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6 max-w-4xl mx-auto px-2" data-testid="text-hero-title">
-          Embrace Orphaned Children with{" "}
-          <span className="text-primary">Love</span> &{" "}
-          <span className="text-secondary">Care</span>
+          {t("hero.title1")}{" "}
+          <span className="text-primary">{t("hero.love")}</span> &{" "}
+          <span className="text-secondary">{t("hero.care")}</span>
         </h1>
         
         <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 sm:mb-10 leading-relaxed px-2" data-testid="text-hero-description">
-          Aghosh by Minhaj Welfare Foundation provides shelter, Hifz-e-Quran, 
-          modern education, healthcare and turns orphans into socially productive human beings.
+          {t("hero.description")}
         </p>
         
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+        <div className={`flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 ${isRTL ? "sm:flex-row-reverse" : ""}`}>
           <Link href="/donate">
             <Button size="lg" className="w-full sm:w-auto min-w-[160px]" data-testid="button-hero-donate">
-              <Heart className="w-5 h-5 mr-2" />
-              Donate Now
+              <Heart className={`w-5 h-5 ${isRTL ? "ml-2" : "mr-2"}`} />
+              {t("nav.donateNow")}
             </Button>
           </Link>
           <Link href="/about">
             <Button variant="outline" size="lg" className="w-full sm:w-auto min-w-[160px]" data-testid="button-hero-learn-more">
-              Learn Our Story
-              <ArrowRight className="w-5 h-5 ml-2" />
+              {t("hero.learnStory")}
+              <ArrowIcon className={`w-5 h-5 ${isRTL ? "mr-2" : "ml-2"}`} />
             </Button>
           </Link>
         </div>
         
-        <div className="mt-12 md:mt-16 grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 max-w-3xl mx-auto">
+        <div className={`mt-12 md:mt-16 grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 max-w-3xl mx-auto ${isRTL ? "direction-rtl" : ""}`}>
           {[
-            { number: "500+", label: "Orphans Supported" },
-            { number: "34", label: "Residential Blocks" },
-            { number: "Rs.6,500", label: "Monthly Sponsorship" },
-            { number: "100%", label: "Transparency" },
+            { number: "500+", labelKey: "hero.orphansSupported" },
+            { number: "34", labelKey: "hero.residentialBlocks" },
+            { number: "Rs.6,500", labelKey: "hero.monthlySponsorship" },
+            { number: "100%", labelKey: "hero.transparency" },
           ].map((stat, index) => (
             <div key={index} className="text-center p-3 md:p-0" data-testid={`stat-${index}`}>
               <p className="text-xl sm:text-2xl md:text-3xl font-bold text-primary">{stat.number}</p>
-              <p className="text-xs sm:text-sm text-muted-foreground mt-1">{stat.label}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">{t(stat.labelKey)}</p>
             </div>
           ))}
         </div>
