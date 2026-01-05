@@ -1,7 +1,8 @@
 import { Link } from "wouter";
-import { Heart, Mail, Phone, MapPin } from "lucide-react";
+import { Mail, Phone, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import aghoshLogo from "@assets/Aghosh-Karachi-Minhaj-Welfare-Foundation-Pakistan_05_1767633857577.jpg";
 
 export function Footer() {
   return (
@@ -9,18 +10,20 @@ export function Footer() {
       <div className="max-w-7xl mx-auto px-4 py-12 md:py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
           <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="flex items-center justify-center w-10 h-10 rounded-md bg-primary">
-                <Heart className="w-5 h-5 text-primary-foreground" />
-              </div>
+            <div className="flex items-center gap-3">
+              <img 
+                src={aghoshLogo} 
+                alt="Aghosh Orphan Care Home Logo" 
+                className="h-12 w-12 object-contain rounded-md"
+              />
               <div className="flex flex-col">
-                <span className="font-semibold text-lg leading-tight">Aghosh</span>
-                <span className="text-xs text-muted-foreground leading-tight">Orphan Care</span>
+                <span className="font-semibold text-lg leading-tight text-primary">Aghosh</span>
+                <span className="text-xs text-muted-foreground leading-tight">Minhaj Welfare Foundation</span>
               </div>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              A project of Minhaj Welfare Foundation dedicated to providing love, care, 
-              and support to orphaned and vulnerable children.
+              Founded by Shaykh-ul-Islam Dr. Muhammad Tahir-ul-Qadri to provide shelter, 
+              education, and care to orphaned children, turning them into socially productive human beings.
             </p>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <span className="font-arabic text-base">بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيم</span>
@@ -63,7 +66,7 @@ export function Footer() {
             <ul className="space-y-3 text-sm">
               <li className="flex items-start gap-3 text-muted-foreground">
                 <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <span>Minhaj Welfare Foundation, Model Town, Lahore, Pakistan</span>
+                <span>Shah Jillani Road, Township, Lahore, Pakistan</span>
               </li>
               <li className="flex items-center gap-3 text-muted-foreground">
                 <Phone className="w-4 h-4 flex-shrink-0" />
@@ -71,7 +74,7 @@ export function Footer() {
               </li>
               <li className="flex items-center gap-3 text-muted-foreground">
                 <Mail className="w-4 h-4 flex-shrink-0" />
-                <span>info@aghosh.org</span>
+                <span>info@welfare.org.pk</span>
               </li>
             </ul>
           </div>
@@ -97,7 +100,7 @@ export function Footer() {
 
         <div className="mt-12 pt-8 border-t">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-            <p>&copy; {new Date().getFullYear()} Aghosh Orphan Care - Minhaj Welfare Foundation. All rights reserved.</p>
+            <p>&copy; {new Date().getFullYear()} Aghosh Orphan Care Home - Minhaj Welfare Foundation. All rights reserved.</p>
             <div className="flex items-center gap-4 flex-wrap">
               <Link href="/admin" className="hover:text-foreground transition-colors" data-testid="link-admin">
                 Admin Login

@@ -1,24 +1,37 @@
-# Orphan Care Home Donation & Management App - Design Guidelines
+# Aghosh Orphan Care Home - Design Guidelines
 
 ## Design Approach
-**Reference-Based**: Drawing inspiration from Islamic Relief, Charity: Water, and GoFundMe to create a warm, trustworthy donation platform that balances emotional storytelling with functional clarity. The design emphasizes transparency, compassion, and Islamic values through clean, respectful aesthetics.
+**Brand Colors**: Red, Green, and White - matching the official Aghosh logo
+**Reference**: Minhaj Welfare Foundation branding and Islamic humanitarian design principles
 
 ## Core Design Principles
-1. **Warmth & Trust**: Soft, approachable design that builds emotional connection
-2. **Islamic Authenticity**: Respectful presentation with "Assalamu Alaikum" greeting, Arabic calligraphy accents
+1. **Warmth & Trust**: Compassionate design that builds emotional connection
+2. **Islamic Authenticity**: "Assalamu Alaikum" greeting, Arabic calligraphy, respectful presentation
 3. **Transparency First**: Clear donation tracking, impact visualization, honest communication
-4. **Emotional Storytelling**: Photo-driven narratives highlighting real impact
+4. **Aghosh Branding**: Consistent use of red (primary), green (secondary), and white
+
+## Color System
+
+### Primary Colors (from Aghosh Logo)
+- **Primary (Red)**: HSL(0, 70%, 42%) - Deep red from the logo circle
+- **Secondary (Green)**: HSL(145, 65%, 35%) - Green from the logo band
+- **White**: Pure white backgrounds for clean, trustworthy appearance
+
+### Color Usage
+- **Red (Primary)**: Main CTAs, donate buttons, important highlights, primary accents
+- **Green (Secondary)**: Success states, positive indicators, Islamic elements, secondary buttons
+- **White**: Backgrounds, cards, clean spaces
+- **Neutrals**: Text and borders using grayscale
 
 ## Typography System
-**Primary Font**: Inter (via Google Fonts) - clean, modern, excellent readability
-**Secondary Font**: Amiri or Scheherazade New (for Arabic/Islamic text accents)
+**Primary Font**: Open Sans - clean, modern, excellent readability
 
 **Hierarchy**:
 - Hero Headlines: text-5xl md:text-6xl, font-bold
 - Section Headers: text-3xl md:text-4xl, font-semibold
 - Body Text: text-base md:text-lg, font-normal, leading-relaxed
 - Card Titles: text-xl font-semibold
-- Captions: text-sm text-gray-600
+- Captions: text-sm text-muted-foreground
 
 ## Layout System
 **Spacing Units**: Consistent use of Tailwind's 4, 8, 12, 16, 20, 24 units
@@ -32,95 +45,68 @@
 
 ### Navigation
 Sticky header with:
-- Logo with Islamic geometric pattern accent
+- Aghosh logo (official logo image)
+- "Minhaj Welfare Foundation" tagline
 - Horizontal menu: Home | About | Programs | Donate | Impact | Contact
-- Prominent "Donate Now" CTA button (elevated, distinct)
+- Prominent red "Donate Now" CTA button
 - Mobile: Hamburger menu with slide-in drawer
 
-### Hero Section (Home)
-Full-width, 70vh hero with authentic orphan care imagery showing children in care/education
-- Overlay gradient (dark bottom to transparent top) for text readability
-- "Assalamu Alaikum" greeting in Arabic calligraphy above headline
-- Compelling headline: "Supporting Orphaned Children with Care & Compassion"
-- Subheading explaining mission
-- Dual CTA: Primary "Donate Now" + Secondary "Learn Our Story" (both with backdrop-blur-sm bg-white/20 treatment)
+### Hero Section
+Full-width hero with gradient background (red to green subtle pattern):
+- Aghosh logo prominently displayed
+- "Assalamu Alaikum" greeting in Arabic calligraphy
+- Compelling headline with red "Love" and green "Care" highlights
+- Subheading explaining Minhaj Welfare Foundation mission
+- Dual CTA: Primary "Donate Now" (red) + Secondary "Learn Our Story"
+- Statistics grid showing impact numbers
 
 ### Donation Cards
-Multi-column grid (2-3 columns desktop, stack mobile) featuring:
-- Healthcare, Education, Food, Clothing, Shelter, General categories
-- Each card: Icon (Heroicons), title, brief description, "Donate" button
-- Hover: Subtle lift effect (shadow-lg transform -translate-y-1)
+Grid featuring donation categories:
+- Healthcare, Education, Food, Clothing, General categories
+- Each card: Icon, title, brief description, "Donate" button
+- Hover: Subtle elevation effect
 
 ### Impact Section
-**Statistics Bar**: 4-column grid with large numbers
+**Statistics Bar**: Bold numbers with labels
 - Children Supported, Meals Provided, Students Educated, Medical Treatments
-- Counter animation feel with bold numbers (text-4xl) and labels
 
-**Stories Grid**: Masonry-style or card grid
-- Photo (placeholder with respectful children imagery)
-- Name/age, brief story, impact achieved
-- "Read More" links
+**Stories Grid**: Card-based stories
+- Photo placeholder, name/age, brief story, impact achieved
 
 ### Donation Form
-Single-column, centered form (max-w-2xl):
-1. Greeting: "Your donation transforms lives"
-2. Purpose selection: Large radio cards with icons
-3. Amount options: Quick-select buttons ($25, $50, $100, Custom)
-4. Custom amount input
-5. Donor info: Name (with "Donate Anonymously" checkbox), Email, Phone (optional)
-6. Payment method selection (mock cards)
-7. Prominent "Complete Donation" button
-8. Trust badges below: Secure payment, Tax deductible
-
-### Admin Dashboard
-Clean data dashboard:
-- Card-based metrics (4 columns: Total Donations, By Category, Recent Count, Active Programs)
-- Table for recent donations
-- Charts: Donut for category breakdown, line for trends
-- Action buttons: "Add Story", "New Program", "View All"
+Single-column, centered form:
+1. Purpose selection with icon cards
+2. Amount options: Quick-select buttons and custom input
+3. Donor info with anonymous option
+4. Payment method selection
+5. "Complete Donation" button (red primary)
+6. Trust badges
 
 ### Footer
-Rich footer (3-4 columns):
-- About column: Mission statement, trust certification badges
-- Quick Links: Programs, Donation Info, Privacy Policy
-- Contact: Address, Phone, Email, Prayer times note
-- Newsletter signup: "Stay Updated" with email input
-- Social media icons
-- Copyright with Islamic foundation tagline
+Rich footer with:
+- Aghosh logo and Minhaj Welfare Foundation description
+- Quick Links
+- Contact info (Shah Jillani Road, Township Lahore)
+- Newsletter signup
+- Copyright with foundation attribution
 
-## Images Strategy
-
-### Required Images
-1. **Hero Image**: Large, impactful photo (1920x1080) showing orphan children in care home - studying, eating together, or playing. Should evoke warmth and hope, not sadness.
-2. **Program Images**: 5 images (800x600) for Healthcare, Education, Food, Clothing, Shelter sections - authentic documentary-style photos
-3. **Impact Stories**: 6-9 portrait photos (400x500) of individual children with respectful, dignified presentation
-4. **Admin Dashboard**: Optional chart placeholders or use Chart.js for live data
-
-### Image Treatment
-- Slightly warm filter (increased saturation by 5-10%)
-- Rounded corners (rounded-lg) for all content images
-- Respectful composition avoiding overly emotional manipulation
-
-## Interaction Patterns
-- **Smooth scrolling**: Between sections
-- **Form validation**: Inline, real-time feedback with gentle error states
-- **Loading states**: Spinner for donation processing
-- **Success modals**: Celebration overlay after donation with receipt option
-- **Minimal animations**: Subtle fade-ins on scroll, no distracting motion
+## Dark Mode
+Full dark mode support with:
+- Adjusted red and green for visibility on dark backgrounds
+- Proper contrast ratios maintained
+- Accent colors adapted for dark theme
 
 ## Accessibility
 - High contrast text (WCAG AA minimum)
-- Clear focus states on all interactive elements
-- Semantic HTML throughout
-- Alt text for all images describing context respectfully
-- Keyboard navigation support
-- Arabic text properly right-aligned where used
+- Clear focus states
+- Semantic HTML
+- Alt text for all images
+- Arabic text properly displayed
 
 ## Mobile Optimization
 - Stack all multi-column layouts to single column
 - Larger touch targets (min 44x44px)
 - Simplified navigation with drawer menu
-- Donation form optimized for mobile keyboards
-- Horizontal scroll for statistics on small screens
+- Optimized form inputs for mobile
 
-This design creates a trustworthy, emotionally resonant platform that honors Islamic values while providing a modern, efficient donation experience.
+This design creates a trustworthy, emotionally resonant platform honoring Minhaj Welfare Foundation's Islamic values while providing a modern, efficient donation experience.
