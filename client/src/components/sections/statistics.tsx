@@ -1,4 +1,5 @@
 import { Heart, GraduationCap, Utensils, Stethoscope } from "lucide-react";
+import { useLanguage } from "@/lib/i18n";
 import type { Statistics } from "@shared/schema";
 
 interface StatisticsBarProps {
@@ -14,29 +15,31 @@ const defaultStats: Statistics = {
 };
 
 export function StatisticsBar({ statistics = defaultStats }: StatisticsBarProps) {
+  const { t, isRTL } = useLanguage();
+
   const stats = [
     {
       icon: Heart,
       value: statistics.childrenSupported,
-      label: "Children Supported",
+      labelKey: "stats.childrenSupported",
       suffix: "+",
     },
     {
       icon: Utensils,
       value: statistics.mealsProvided,
-      label: "Meals Provided",
+      labelKey: "stats.mealsProvided",
       suffix: "+",
     },
     {
       icon: GraduationCap,
       value: statistics.studentsEducated,
-      label: "Students Educated",
+      labelKey: "stats.studentsEducated",
       suffix: "+",
     },
     {
       icon: Stethoscope,
       value: statistics.medicalTreatments,
-      label: "Medical Treatments",
+      labelKey: "stats.medicalTreatments",
       suffix: "+",
     },
   ];
@@ -51,7 +54,7 @@ export function StatisticsBar({ statistics = defaultStats }: StatisticsBarProps)
   return (
     <section className="py-16 md:py-20 bg-primary text-primary-foreground">
       <div className="max-w-7xl mx-auto px-4">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className={`grid grid-cols-2 lg:grid-cols-4 gap-8 ${isRTL ? "direction-rtl" : ""}`}>
           {stats.map((stat, index) => {
             const Icon = stat.icon;
             return (
@@ -66,7 +69,7 @@ export function StatisticsBar({ statistics = defaultStats }: StatisticsBarProps)
                 <p className="text-3xl md:text-4xl font-bold mb-2">
                   {formatNumber(stat.value)}{stat.suffix}
                 </p>
-                <p className="text-sm md:text-base opacity-90">{stat.label}</p>
+                <p className="text-sm md:text-base opacity-90">{t(stat.labelKey)}</p>
               </div>
             );
           })}

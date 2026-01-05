@@ -1,54 +1,53 @@
 import { Shield, Users, BookOpen, Heart } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-
-const values = [
-  {
-    icon: Heart,
-    title: "Compassion",
-    description: "We treat every child with love, care, and respect, providing a nurturing environment that feels like home.",
-  },
-  {
-    icon: Shield,
-    title: "Transparency",
-    description: "Every donation is accounted for. We maintain complete transparency in how funds are utilized.",
-  },
-  {
-    icon: BookOpen,
-    title: "Education",
-    description: "We believe education is the key to breaking cycles of poverty and building a brighter future.",
-  },
-  {
-    icon: Users,
-    title: "Community",
-    description: "We foster a sense of belonging and family, creating strong bonds that last a lifetime.",
-  },
-];
+import { useLanguage } from "@/lib/i18n";
 
 export function MissionSection() {
+  const { t, isRTL } = useLanguage();
+
+  const values = [
+    {
+      icon: Heart,
+      titleKey: "mission.compassion",
+      descKey: "mission.compassionDesc",
+    },
+    {
+      icon: Shield,
+      titleKey: "mission.transparency",
+      descKey: "mission.transparencyDesc",
+    },
+    {
+      icon: BookOpen,
+      titleKey: "mission.education",
+      descKey: "mission.educationDesc",
+    },
+    {
+      icon: Users,
+      titleKey: "mission.community",
+      descKey: "mission.communityDesc",
+    },
+  ];
+
   return (
     <section className="py-16 md:py-24">
       <div className="max-w-7xl mx-auto px-4">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
-          <div>
-            <span className="text-sm font-medium text-primary uppercase tracking-wider">Our Mission</span>
+        <div className={`grid lg:grid-cols-2 gap-12 items-center ${isRTL ? "direction-rtl" : ""}`}>
+          <div className={isRTL ? "text-right" : ""}>
+            <span className="text-sm font-medium text-primary uppercase tracking-wider">{t("mission.label")}</span>
             <h2 className="text-3xl md:text-4xl font-bold mt-2 mb-6" data-testid="text-mission-title">
-              Nurturing Hope, Building Futures
+              {t("mission.title")}
             </h2>
             <p className="text-lg text-muted-foreground leading-relaxed mb-6">
-              Aghosh Orphan Care Home is a project of Minhaj Welfare Foundation, dedicated to 
-              providing comprehensive care to orphaned and vulnerable children. We believe every 
-              child deserves love, education, healthcare, and the opportunity to thrive.
+              {t("mission.desc1")}
             </p>
             <p className="text-muted-foreground leading-relaxed mb-6">
-              Our holistic approach addresses not just the immediate needs of food, shelter, and 
-              clothing, but also focuses on education, spiritual growth, and emotional well-being. 
-              We aim to raise confident, capable individuals who can contribute positively to society.
+              {t("mission.desc2")}
             </p>
             <div className="flex items-center gap-2 p-4 bg-accent/50 rounded-md">
               <span className="font-arabic text-xl">وَيُطْعِمُونَ الطَّعَامَ عَلَىٰ حُبِّهِ مِسْكِينًا وَيَتِيمًا وَأَسِيرًا</span>
             </div>
             <p className="text-sm text-muted-foreground mt-2 italic">
-              "And they give food in spite of love for it to the needy, the orphan, and the captive" - Quran 76:8
+              "{t("mission.quranVerse")}" - {t("mission.quranRef")}
             </p>
           </div>
 
@@ -57,12 +56,12 @@ export function MissionSection() {
               const Icon = value.icon;
               return (
                 <Card key={index} className="bg-card" data-testid={`card-value-${index}`}>
-                  <CardContent className="p-6">
-                    <div className="w-10 h-10 rounded-md bg-primary/10 flex items-center justify-center mb-4">
+                  <CardContent className={`p-6 ${isRTL ? "text-right" : ""}`}>
+                    <div className={`w-10 h-10 rounded-md bg-primary/10 flex items-center justify-center mb-4 ${isRTL ? "mr-auto" : ""}`}>
                       <Icon className="w-5 h-5 text-primary" />
                     </div>
-                    <h3 className="font-semibold text-lg mb-2">{value.title}</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">{value.description}</p>
+                    <h3 className="font-semibold text-lg mb-2">{t(value.titleKey)}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{t(value.descKey)}</p>
                   </CardContent>
                 </Card>
               );

@@ -8,7 +8,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import {
@@ -41,7 +40,8 @@ import {
   Loader2,
   Download
 } from "lucide-react";
-import { categoryInfoList, type DonationCategory } from "@shared/schema";
+import { useLanguage } from "@/lib/i18n";
+import { type DonationCategory } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -66,13 +66,8 @@ type DonationFormData = z.infer<typeof donationFormSchema>;
 
 const presetAmounts = [25, 50, 100, 250, 500, 1000];
 
-const paymentMethods = [
-  { id: "card", label: "Credit/Debit Card", icon: CreditCard },
-  { id: "bank", label: "Bank Transfer", icon: Building2 },
-  { id: "wallet", label: "Digital Wallet", icon: Wallet },
-];
-
 export default function DonatePage() {
+  const { t, isRTL } = useLanguage();
   const searchString = useSearch();
   const params = new URLSearchParams(searchString);
   const categoryParam = params.get("category") as DonationCategory | null;
@@ -82,6 +77,20 @@ export default function DonatePage() {
   const [donationDetails, setDonationDetails] = useState<DonationFormData | null>(null);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+
+  const categories = [
+    { id: "healthcare", icon: "Heart", titleKey: "categories.healthcare" },
+    { id: "education", icon: "GraduationCap", titleKey: "categories.education" },
+    { id: "food", icon: "Utensils", titleKey: "categories.food" },
+    { id: "clothing", icon: "Shirt", titleKey: "categories.clothing" },
+    { id: "general", icon: "HandHeart", titleKey: "categories.general" },
+  ];
+
+  const paymentMethods = [
+    { id: "card", labelKey: "donate.creditDebitCard", icon: CreditCard },
+    { id: "bank", labelKey: "donate.bankTransfer", icon: Building2 },
+    { id: "wallet", labelKey: "donate.digitalWallet", icon: Wallet },
+  ];
 
   const form = useForm<DonationFormData>({
     resolver: zodResolver(donationFormSchema),
@@ -114,8 +123,8 @@ export default function DonatePage() {
     },
     onError: (error: Error) => {
       toast({
-        title: "Donation Failed",
-        description: error.message || "Something went wrong. Please try again.",
+        title: t("donate.donationFailed"),
+        description: error.message || t("donate.tryAgain"),
         variant: "destructive",
       });
     },
@@ -141,30 +150,28 @@ export default function DonatePage() {
 
   const selectedAmount = form.watch("amount");
   const isAnonymous = form.watch("isAnonymous");
-  const selectedCategory = form.watch("category");
 
   return (
     <main className="py-12 md:py-20">
       <div className="max-w-3xl mx-auto px-4">
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-4">
+        <div className={`text-center mb-12 ${isRTL ? "direction-rtl" : ""}`}>
+          <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-4 ${isRTL ? "flex-row-reverse" : ""}`}>
             <span className="font-arabic text-base">صَدَقَةٌ</span>
-            <span className="text-sm text-muted-foreground">Charity</span>
+            <span className="text-sm text-muted-foreground">{t("donate.charity")}</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-4" data-testid="text-donate-title">
-            Your Donation <span className="text-primary">Transforms Lives</span>
+            {t("donate.title")} <span className="text-primary">{t("donate.titleHighlight")}</span>
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Every contribution, no matter how small, brings hope to orphaned children. 
-            Choose how you'd like to make a difference today.
+            {t("donate.subtitle")}
           </p>
         </div>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Make a Donation</CardTitle>
+          <CardHeader className={isRTL ? "text-right" : ""}>
+            <CardTitle>{t("donate.makeADonation")}</CardTitle>
             <CardDescription>
-              Fill in the details below to complete your donation
+              {t("donate.fillDetails")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -174,13 +181,13 @@ export default function DonatePage() {
                   control={form.control}
                   name="category"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className={isRTL ? "text-right" : ""}>
                       <FormLabel className="text-base font-semibold">
-                        Select Donation Purpose
+                        {t("donate.selectPurpose")}
                       </FormLabel>
                       <FormControl>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {categoryInfoList.map((category) => {
+                          {categories.map((category) => {
                             const Icon = iconMap[category.icon] || Heart;
                             const isSelected = field.value === category.id;
                             return (
@@ -188,6 +195,7 @@ export default function DonatePage() {
                                 key={category.id}
                                 className={`
                                   relative flex items-center gap-3 p-4 rounded-md border cursor-pointer transition-all
+                                  ${isRTL ? "flex-row-reverse" : ""}
                                   ${isSelected 
                                     ? "border-primary bg-primary/5" 
                                     : "border-border hover:border-primary/50"
@@ -203,7 +211,7 @@ export default function DonatePage() {
                                   <Icon className="w-5 h-5" />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <p className="font-medium text-sm">{category.title}</p>
+                                  <p className="font-medium text-sm">{t(category.titleKey)}</p>
                                 </div>
                                 {isSelected && (
                                   <CheckCircle className="w-5 h-5 text-primary flex-shrink-0" />
@@ -222,9 +230,9 @@ export default function DonatePage() {
                   control={form.control}
                   name="amount"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className={isRTL ? "text-right" : ""}>
                       <FormLabel className="text-base font-semibold">
-                        Select Amount (USD)
+                        {t("donate.selectAmount")}
                       </FormLabel>
                       <FormControl>
                         <div className="space-y-4">
@@ -243,13 +251,13 @@ export default function DonatePage() {
                             ))}
                           </div>
                           <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                            <span className={`absolute top-1/2 -translate-y-1/2 text-muted-foreground ${isRTL ? "right-3" : "left-3"}`}>
                               $
                             </span>
                             <Input
                               type="number"
-                              placeholder="Enter custom amount"
-                              className="pl-7"
+                              placeholder={t("donate.enterCustom")}
+                              className={isRTL ? "pr-7" : "pl-7"}
                               value={customAmount}
                               onChange={(e) => handleCustomAmountChange(e.target.value)}
                               data-testid="input-custom-amount"
@@ -267,7 +275,7 @@ export default function DonatePage() {
                     control={form.control}
                     name="isAnonymous"
                     render={({ field }) => (
-                      <FormItem className="flex flex-row items-center gap-3 space-y-0">
+                      <FormItem className={`flex flex-row items-center gap-3 space-y-0 ${isRTL ? "flex-row-reverse" : ""}`}>
                         <FormControl>
                           <Checkbox
                             checked={field.value}
@@ -276,7 +284,7 @@ export default function DonatePage() {
                           />
                         </FormControl>
                         <FormLabel className="font-normal cursor-pointer">
-                          Donate Anonymously
+                          {t("donate.donateAnonymously")}
                         </FormLabel>
                       </FormItem>
                     )}
@@ -288,11 +296,11 @@ export default function DonatePage() {
                         control={form.control}
                         name="donorName"
                         render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Your Name</FormLabel>
+                          <FormItem className={isRTL ? "text-right" : ""}>
+                            <FormLabel>{t("donate.yourName")}</FormLabel>
                             <FormControl>
                               <Input 
-                                placeholder="John Doe" 
+                                placeholder={t("donate.yourName")} 
                                 {...field} 
                                 data-testid="input-donor-name"
                               />
@@ -306,12 +314,12 @@ export default function DonatePage() {
                         control={form.control}
                         name="email"
                         render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Email Address</FormLabel>
+                          <FormItem className={isRTL ? "text-right" : ""}>
+                            <FormLabel>{t("donate.emailAddress")}</FormLabel>
                             <FormControl>
                               <Input 
                                 type="email" 
-                                placeholder="john@example.com" 
+                                placeholder={t("donate.emailAddress")} 
                                 {...field} 
                                 data-testid="input-donor-email"
                               />
@@ -328,9 +336,9 @@ export default function DonatePage() {
                   control={form.control}
                   name="paymentMethod"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className={isRTL ? "text-right" : ""}>
                       <FormLabel className="text-base font-semibold">
-                        Payment Method
+                        {t("donate.paymentMethod")}
                       </FormLabel>
                       <FormControl>
                         <RadioGroup
@@ -345,6 +353,7 @@ export default function DonatePage() {
                                 key={method.id}
                                 className={`
                                   flex items-center gap-3 p-4 rounded-md border cursor-pointer transition-all
+                                  ${isRTL ? "flex-row-reverse" : ""}
                                   ${field.value === method.id 
                                     ? "border-primary bg-primary/5" 
                                     : "border-border hover:border-primary/50"
@@ -354,7 +363,7 @@ export default function DonatePage() {
                               >
                                 <RadioGroupItem value={method.id} className="sr-only" />
                                 <Icon className={`w-5 h-5 flex-shrink-0 ${field.value === method.id ? "text-primary" : "text-muted-foreground"}`} />
-                                <span className="text-sm font-medium">{method.label}</span>
+                                <span className="text-sm font-medium">{t(method.labelKey)}</span>
                               </Label>
                             );
                           })}
@@ -365,14 +374,14 @@ export default function DonatePage() {
                   )}
                 />
 
-                <div className="flex items-center justify-center gap-4 sm:gap-6 py-4 text-xs sm:text-sm text-muted-foreground flex-wrap">
-                  <div className="flex items-center gap-2">
+                <div className={`flex items-center justify-center gap-4 sm:gap-6 py-4 text-xs sm:text-sm text-muted-foreground flex-wrap ${isRTL ? "flex-row-reverse" : ""}`}>
+                  <div className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
                     <Shield className="w-4 h-4 flex-shrink-0" />
-                    <span>Secure Payment</span>
+                    <span>{t("donate.securePayment")}</span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
                     <Lock className="w-4 h-4 flex-shrink-0" />
-                    <span>256-bit Encryption</span>
+                    <span>{t("donate.encryption")}</span>
                   </div>
                 </div>
 
@@ -385,13 +394,13 @@ export default function DonatePage() {
                 >
                   {donationMutation.isPending ? (
                     <>
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      Processing...
+                      <Loader2 className={`w-5 h-5 animate-spin ${isRTL ? "ml-2" : "mr-2"}`} />
+                      {t("donate.processing")}
                     </>
                   ) : (
                     <>
-                      <Heart className="w-5 h-5 mr-2" />
-                      Complete Donation {selectedAmount > 0 && `- $${selectedAmount}`}
+                      <Heart className={`w-5 h-5 ${isRTL ? "ml-2" : "mr-2"}`} />
+                      {t("donate.completeDonation")} {selectedAmount > 0 && `- $${selectedAmount}`}
                     </>
                   )}
                 </Button>
@@ -401,23 +410,22 @@ export default function DonatePage() {
         </Card>
 
         <Dialog open={showSuccess} onOpenChange={setShowSuccess}>
-          <DialogContent className="text-center sm:max-w-md">
+          <DialogContent className={`text-center sm:max-w-md ${isRTL ? "direction-rtl" : ""}`}>
             <DialogHeader>
               <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
                 <CheckCircle className="w-10 h-10 text-primary" />
               </div>
-              <DialogTitle className="text-2xl">Thank You!</DialogTitle>
+              <DialogTitle className="text-2xl">{t("donate.thankYou")}</DialogTitle>
               <DialogDescription className="text-base">
-                Your generous donation of <strong>${donationDetails?.amount}</strong> has been received.
-                May Allah bless you abundantly.
+                {t("donate.donationReceived")}
               </DialogDescription>
             </DialogHeader>
-            <div className="mt-4 p-4 bg-accent/50 rounded-md text-left">
-              <p className="text-sm font-medium mb-2">Donation Details:</p>
+            <div className={`mt-4 p-4 bg-accent/50 rounded-md ${isRTL ? "text-right" : "text-left"}`}>
+              <p className="text-sm font-medium mb-2">{t("donate.donationDetails")}</p>
               <div className="text-sm text-muted-foreground space-y-1">
-                <p>Purpose: {categoryInfoList.find(c => c.id === donationDetails?.category)?.title}</p>
-                <p>Amount: ${donationDetails?.amount}</p>
-                <p>Payment: {paymentMethods.find(m => m.id === donationDetails?.paymentMethod)?.label}</p>
+                <p>{t("donate.purpose")}: {donationDetails?.category && t(`categories.${donationDetails.category}`)}</p>
+                <p>{t("donate.amount")}: ${donationDetails?.amount}</p>
+                <p>{t("donate.payment")}: {donationDetails?.paymentMethod && t(`donate.${donationDetails.paymentMethod === 'card' ? 'creditDebitCard' : donationDetails.paymentMethod === 'bank' ? 'bankTransfer' : 'digitalWallet'}`)}</p>
               </div>
             </div>
             <div className="flex flex-col gap-2 mt-4">
@@ -425,14 +433,14 @@ export default function DonatePage() {
                 variant="outline" 
                 onClick={() => {
                   toast({
-                    title: "Receipt Downloaded",
-                    description: "Your donation receipt has been downloaded.",
+                    title: t("donate.downloadReceipt"),
+                    description: t("donate.donationReceived"),
                   });
                 }}
                 data-testid="button-download-receipt"
               >
-                <Download className="w-4 h-4 mr-2" />
-                Download Receipt
+                <Download className={`w-4 h-4 ${isRTL ? "ml-2" : "mr-2"}`} />
+                {t("donate.downloadReceipt")}
               </Button>
               <Button 
                 onClick={() => {
@@ -441,7 +449,7 @@ export default function DonatePage() {
                 }}
                 data-testid="button-back-home"
               >
-                Back to Home
+                {t("donate.backToHome")}
               </Button>
             </div>
           </DialogContent>

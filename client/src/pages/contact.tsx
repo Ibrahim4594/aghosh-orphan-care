@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,11 +26,11 @@ import {
   Phone, 
   Mail, 
   Clock, 
-  Send,
   CheckCircle,
+  Send,
   Loader2
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/lib/i18n";
 
 const contactFormSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -41,20 +41,20 @@ const contactFormSchema = z.object({
 
 type ContactFormData = z.infer<typeof contactFormSchema>;
 
-const subjects = [
-  "General Inquiry",
-  "Donation Questions",
-  "Volunteer Opportunities",
-  "Schedule a Visit",
-  "Partnership Request",
-  "Media Inquiry",
-  "Other",
-];
-
 export default function ContactPage() {
+  const { t, isRTL } = useLanguage();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const { toast } = useToast();
+  const [isSuccess, setIsSuccess] = useState(false);
+
+  const subjects = [
+    { key: "contact.generalInquiry", value: "general" },
+    { key: "contact.donationQuestions", value: "donation" },
+    { key: "contact.volunteerOpportunities", value: "volunteer" },
+    { key: "contact.scheduleVisit", value: "visit" },
+    { key: "contact.partnershipRequest", value: "partnership" },
+    { key: "contact.mediaInquiry", value: "media" },
+    { key: "contact.other", value: "other" },
+  ];
 
   const form = useForm<ContactFormData>({
     resolver: zodResolver(contactFormSchema),
@@ -70,39 +70,33 @@ export default function ContactPage() {
     setIsSubmitting(true);
     await new Promise(resolve => setTimeout(resolve, 1500));
     setIsSubmitting(false);
-    setIsSubmitted(true);
-    toast({
-      title: "Message Sent",
-      description: "Thank you for contacting us. We'll respond within 24-48 hours.",
-    });
+    setIsSuccess(true);
     form.reset();
-    setTimeout(() => setIsSubmitted(false), 3000);
   };
 
   return (
     <main className="py-12 md:py-20">
       <div className="max-w-7xl mx-auto px-4">
-        <div className="text-center mb-16">
-          <span className="text-sm font-medium text-primary uppercase tracking-wider">Get in Touch</span>
+        <div className={`text-center mb-16 ${isRTL ? "direction-rtl" : ""}`}>
+          <span className="text-sm font-medium text-primary uppercase tracking-wider">{t("nav.contact")}</span>
           <h1 className="text-4xl md:text-5xl font-bold mt-2 mb-6" data-testid="text-contact-title">
-            Contact Us
+            {t("contact.title")}
           </h1>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-            Have questions about our programs, want to volunteer, or need assistance with a donation? 
-            We're here to help. Reach out to us through any of the channels below.
+            {t("contact.subtitle")}
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
+        <div className={`grid lg:grid-cols-3 gap-8 ${isRTL ? "direction-rtl" : ""}`}>
           <div className="lg:col-span-1 space-y-6">
             <Card data-testid="card-contact-address">
-              <CardContent className="p-6">
-                <div className="flex items-start gap-4">
+              <CardContent className={`p-6 ${isRTL ? "text-right" : ""}`}>
+                <div className={`flex items-start gap-4 ${isRTL ? "flex-row-reverse" : ""}`}>
                   <div className="w-10 h-10 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
                     <MapPin className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <h3 className="font-semibold mb-1">Address</h3>
+                    <h3 className="font-semibold mb-1">{t("contact.address")}</h3>
                     <p className="text-sm text-muted-foreground leading-relaxed">
                       Aghosh Orphan Care Home<br />
                       Near Jamia-al-Minhaj<br />
@@ -115,16 +109,16 @@ export default function ContactPage() {
             </Card>
 
             <Card data-testid="card-contact-phone">
-              <CardContent className="p-6">
-                <div className="flex items-start gap-4">
+              <CardContent className={`p-6 ${isRTL ? "text-right" : ""}`}>
+                <div className={`flex items-start gap-4 ${isRTL ? "flex-row-reverse" : ""}`}>
                   <div className="w-10 h-10 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
                     <Phone className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <h3 className="font-semibold mb-1">Phone</h3>
+                    <h3 className="font-semibold mb-1">{t("contact.phone")}</h3>
                     <p className="text-sm text-muted-foreground">
                       +92 42 35169111<br />
-                      +92 300 1234567
+                      +92 42 35168504
                     </p>
                   </div>
                 </div>
@@ -132,13 +126,13 @@ export default function ContactPage() {
             </Card>
 
             <Card data-testid="card-contact-email">
-              <CardContent className="p-6">
-                <div className="flex items-start gap-4">
+              <CardContent className={`p-6 ${isRTL ? "text-right" : ""}`}>
+                <div className={`flex items-start gap-4 ${isRTL ? "flex-row-reverse" : ""}`}>
                   <div className="w-10 h-10 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
                     <Mail className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <h3 className="font-semibold mb-1">Email</h3>
+                    <h3 className="font-semibold mb-1">{t("contact.email")}</h3>
                     <p className="text-sm text-muted-foreground">
                       info@welfare.org.pk<br />
                       info@minhaj.org
@@ -149,17 +143,16 @@ export default function ContactPage() {
             </Card>
 
             <Card data-testid="card-contact-hours">
-              <CardContent className="p-6">
-                <div className="flex items-start gap-4">
+              <CardContent className={`p-6 ${isRTL ? "text-right" : ""}`}>
+                <div className={`flex items-start gap-4 ${isRTL ? "flex-row-reverse" : ""}`}>
                   <div className="w-10 h-10 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
                     <Clock className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <h3 className="font-semibold mb-1">Office Hours</h3>
+                    <h3 className="font-semibold mb-1">{t("contact.officeHours")}</h3>
                     <p className="text-sm text-muted-foreground">
-                      Monday - Friday: 9AM - 5PM<br />
-                      Saturday: 10AM - 2PM<br />
-                      <span className="italic">Closed for Friday prayers (1-2 PM)</span>
+                      {t("contact.officeHoursText")}<br />
+                      {t("contact.closed")}
                     </p>
                   </div>
                 </div>
@@ -169,146 +162,134 @@ export default function ContactPage() {
 
           <div className="lg:col-span-2">
             <Card>
-              <CardHeader>
-                <CardTitle>Send Us a Message</CardTitle>
-                <CardDescription>
-                  Fill out the form below and we'll get back to you as soon as possible.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {isSubmitted ? (
+              <CardContent className={`p-6 md:p-8 ${isRTL ? "text-right" : ""}`}>
+                {isSuccess ? (
                   <div className="text-center py-12">
-                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                      <CheckCircle className="w-10 h-10 text-primary" />
+                    <div className="w-16 h-16 rounded-full bg-secondary/20 flex items-center justify-center mx-auto mb-6">
+                      <CheckCircle className="w-8 h-8 text-secondary" />
                     </div>
-                    <h3 className="text-xl font-semibold mb-2">Message Sent!</h3>
-                    <p className="text-muted-foreground">
-                      Thank you for reaching out. We'll respond within 24-48 hours.
+                    <h3 className="text-2xl font-bold mb-2">{t("contact.messageSent")}</h3>
+                    <p className="text-muted-foreground mb-6">
+                      {t("contact.responseTime")}
                     </p>
+                    <Button variant="outline" onClick={() => setIsSuccess(false)}>
+                      {t("contact.send")}
+                    </Button>
                   </div>
                 ) : (
-                  <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <>
+                    <h2 className="text-2xl font-bold mb-2">{t("contact.sendMessage")}</h2>
+                    <p className="text-muted-foreground mb-6">
+                      {t("contact.fillForm")}
+                    </p>
+                    
+                    <Form {...form}>
+                      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <FormField
+                            control={form.control}
+                            name="name"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>{t("contact.yourName")}</FormLabel>
+                                <FormControl>
+                                  <Input placeholder={t("contact.yourName")} {...field} data-testid="input-contact-name" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="email"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>{t("contact.email")}</FormLabel>
+                                <FormControl>
+                                  <Input type="email" placeholder={t("contact.email")} {...field} data-testid="input-contact-email" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                        
                         <FormField
                           control={form.control}
-                          name="name"
+                          name="subject"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Your Name</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  placeholder="John Doe" 
-                                  {...field} 
-                                  data-testid="input-contact-name"
-                                />
-                              </FormControl>
+                              <FormLabel>{t("contact.subject")}</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger data-testid="select-contact-subject">
+                                    <SelectValue placeholder={t("contact.selectSubject")} />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {subjects.map((subject) => (
+                                    <SelectItem key={subject.value} value={subject.value}>
+                                      {t(subject.key)}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
-
+                        
                         <FormField
                           control={form.control}
-                          name="email"
+                          name="message"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Email Address</FormLabel>
+                              <FormLabel>{t("contact.message")}</FormLabel>
                               <FormControl>
-                                <Input 
-                                  type="email" 
-                                  placeholder="john@example.com" 
+                                <Textarea 
+                                  placeholder={t("contact.messagePlaceholder")}
+                                  className="min-h-[150px] resize-none"
                                   {...field}
-                                  data-testid="input-contact-email"
+                                  data-testid="textarea-contact-message"
                                 />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
-                      </div>
-
-                      <FormField
-                        control={form.control}
-                        name="subject"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Subject</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                              <FormControl>
-                                <SelectTrigger data-testid="select-contact-subject">
-                                  <SelectValue placeholder="Select a subject" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {subjects.map((subject) => (
-                                  <SelectItem key={subject} value={subject}>
-                                    {subject}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="message"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Message</FormLabel>
-                            <FormControl>
-                              <Textarea 
-                                placeholder="How can we help you?" 
-                                className="min-h-[150px] resize-none"
-                                {...field}
-                                data-testid="textarea-contact-message"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <Button 
-                        type="submit" 
-                        size="lg" 
-                        className="w-full"
-                        disabled={isSubmitting}
-                        data-testid="button-send-message"
-                      >
-                        {isSubmitting ? (
-                          <>
-                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                            Sending...
-                          </>
-                        ) : (
-                          <>
-                            <Send className="w-5 h-5 mr-2" />
-                            Send Message
-                          </>
-                        )}
-                      </Button>
-                    </form>
-                  </Form>
+                        
+                        <Button 
+                          type="submit" 
+                          size="lg" 
+                          className="w-full"
+                          disabled={isSubmitting}
+                          data-testid="button-contact-submit"
+                        >
+                          {isSubmitting ? (
+                            <>
+                              <Loader2 className={`w-5 h-5 animate-spin ${isRTL ? "ml-2" : "mr-2"}`} />
+                              {t("contact.sending")}
+                            </>
+                          ) : (
+                            <>
+                              <Send className={`w-5 h-5 ${isRTL ? "ml-2" : "mr-2"}`} />
+                              {t("contact.send")}
+                            </>
+                          )}
+                        </Button>
+                      </form>
+                    </Form>
+                  </>
                 )}
               </CardContent>
             </Card>
           </div>
         </div>
 
-        <div className="mt-16 bg-accent/30 rounded-lg p-8 md:p-12 text-center">
-          <h2 className="text-2xl md:text-3xl font-bold mb-4">
-            Visit Aghosh Orphan Care Home
-          </h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto mb-6">
-            We welcome visitors who wish to see our facilities, meet the children, and learn 
-            more about our work. Please contact us in advance to schedule a visit.
-          </p>
-          <p className="text-sm text-muted-foreground italic">
-            "The best of you are those who are best to the orphans." - Prophet Muhammad (PBUH)
+        <div className={`mt-16 bg-accent/30 rounded-lg p-8 md:p-12 text-center ${isRTL ? "direction-rtl" : ""}`}>
+          <h2 className="text-2xl md:text-3xl font-bold mb-4">{t("contact.visitUs")}</h2>
+          <p className="text-muted-foreground max-w-2xl mx-auto">
+            {t("contact.visitDesc")}
           </p>
         </div>
       </div>

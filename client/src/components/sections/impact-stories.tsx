@@ -4,13 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { User } from "lucide-react";
+import { useLanguage } from "@/lib/i18n";
 import type { ImpactStory } from "@shared/schema";
 
 interface ImpactStoriesProps {
   stories?: ImpactStory[];
 }
 
-const defaultStories: ImpactStory[] = [
+const defaultStoriesEn: ImpactStory[] = [
   {
     id: "1",
     title: "A New Beginning for Ahmed",
@@ -43,25 +44,60 @@ const defaultStories: ImpactStory[] = [
   },
 ];
 
-export function ImpactStoriesSection({ stories = defaultStories }: ImpactStoriesProps) {
+const defaultStoriesUr: ImpactStory[] = [
+  {
+    id: "1",
+    title: "احمد کے لیے ایک نئی شروعات",
+    content: "احمد 6 سال کی عمر میں والدین کے انتقال کے بعد آغوش آیا۔ آج وہ اپنی تعلیم میں بہترین ہے اور ڈاکٹر بننے کا خواب رکھتا ہے۔ آپ کی مدد سے احمد کو مناسب غذائیت، معیاری تعلیم اور پیار ملا۔ وہ اب اپنی کلاس کے بہترین طلباء میں سے ایک ہے۔",
+    childName: "احمد",
+    childAge: 12,
+    imageUrl: null,
+    isPublished: true,
+    createdAt: new Date(),
+  },
+  {
+    id: "2", 
+    title: "فاطمہ کا کامیابی کا سفر",
+    content: "فاطمہ یتیم خانے میں کمزور اور خاموش آئی۔ وقف دیکھ بھال، غذائیت سے بھرپور کھانے اور تعلیم کے ذریعے وہ ایک پر اعتماد لڑکی بن گئی ہے جو دوسروں کی مدد کرنا پسند کرتی ہے۔ وہ اب چھوٹے بچوں کو پڑھنا سکھاتی ہے۔",
+    childName: "فاطمہ",
+    childAge: 10,
+    imageUrl: null,
+    isPublished: true,
+    createdAt: new Date(),
+  },
+  {
+    id: "3",
+    title: "ابراہیم نے اپنی آواز پائی",
+    content: "جب ابراہیم پہلی بار ہمارے پاس آیا تو وہ بمشکل بولتا تھا۔ صبر سے دیکھ بھال اور مشاورت کے ذریعے وہ ایک ملنسار بچہ بن گیا ہے جو قرآن پڑھنا پسند کرتا ہے۔ اس کی خوبصورت آواز اب صبح کی نمازوں کی امامت کرتی ہے۔",
+    childName: "ابراہیم",
+    childAge: 8,
+    imageUrl: null,
+    isPublished: true,
+    createdAt: new Date(),
+  },
+];
+
+export function ImpactStoriesSection({ stories }: ImpactStoriesProps) {
+  const { t, isRTL, language } = useLanguage();
   const [selectedStory, setSelectedStory] = useState<ImpactStory | null>(null);
+  
+  const displayStories = stories || (language === "ur" ? defaultStoriesUr : defaultStoriesEn);
 
   return (
     <section className="py-16 md:py-24">
       <div className="max-w-7xl mx-auto px-4">
-        <div className="text-center mb-12">
-          <span className="text-sm font-medium text-primary uppercase tracking-wider">Impact Stories</span>
+        <div className={`text-center mb-12 ${isRTL ? "direction-rtl" : ""}`}>
+          <span className="text-sm font-medium text-primary uppercase tracking-wider">{t("impact.label")}</span>
           <h2 className="text-3xl md:text-4xl font-bold mt-2 mb-4" data-testid="text-stories-title">
-            Lives Transformed
+            {t("stories.title")}
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Every donation creates a ripple of change. Read about the children whose lives 
-            have been transformed through your generosity.
+            {t("stories.subtitle")}
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {stories.map((story) => (
+          {displayStories.map((story) => (
             <Card 
               key={story.id} 
               className="group hover-elevate transition-all duration-300 overflow-visible"
@@ -72,11 +108,11 @@ export function ImpactStoriesSection({ stories = defaultStories }: ImpactStories
                   <User className="w-10 h-10 text-primary" />
                 </div>
               </div>
-              <CardContent className="p-6">
-                <div className="flex items-center gap-2 mb-3">
+              <CardContent className={`p-6 ${isRTL ? "text-right" : ""}`}>
+                <div className={`flex items-center gap-2 mb-3 ${isRTL ? "justify-end" : ""}`}>
                   {story.childName && (
                     <Badge variant="secondary" className="text-xs">
-                      {story.childName}, {story.childAge} years
+                      {story.childName}, {story.childAge} {t("stories.years")}
                     </Badge>
                   )}
                 </div>
@@ -90,7 +126,7 @@ export function ImpactStoriesSection({ stories = defaultStories }: ImpactStories
                   onClick={() => setSelectedStory(story)}
                   data-testid={`button-read-story-${story.id}`}
                 >
-                  Read Full Story
+                  {t("stories.readFull")}
                 </Button>
               </CardContent>
             </Card>
@@ -98,14 +134,14 @@ export function ImpactStoriesSection({ stories = defaultStories }: ImpactStories
         </div>
 
         <Dialog open={!!selectedStory} onOpenChange={() => setSelectedStory(null)}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className={`max-w-2xl ${isRTL ? "direction-rtl text-right" : ""}`}>
             <DialogHeader>
               <DialogTitle className="text-2xl">{selectedStory?.title}</DialogTitle>
             </DialogHeader>
             <div className="mt-4">
               {selectedStory?.childName && (
                 <Badge variant="secondary" className="mb-4">
-                  {selectedStory.childName}, {selectedStory.childAge} years old
+                  {selectedStory.childName}, {selectedStory.childAge} {t("stories.yearsOld")}
                 </Badge>
               )}
               <p className="text-muted-foreground leading-relaxed whitespace-pre-line">

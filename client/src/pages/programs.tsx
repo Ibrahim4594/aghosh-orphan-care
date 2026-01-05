@@ -11,78 +11,76 @@ import {
   BookOpen,
   Stethoscope,
   Users,
-  ArrowRight
+  ArrowRight,
+  ArrowLeft
 } from "lucide-react";
-
-const programs = [
-  {
-    id: "orphan-care",
-    title: "Orphan Care Program",
-    description: "Comprehensive care for orphaned children including shelter, food, clothing, and emotional support.",
-    fullDescription: "Our flagship program provides a loving home environment for orphaned and vulnerable children. Each child receives individual attention, comfortable accommodation, nutritious meals, appropriate clothing, and most importantly, the love and care of a supportive family environment.",
-    icon: Home,
-    features: ["24/7 Care & Supervision", "Nutritious Meals", "Safe Living Spaces", "Emotional Support"],
-    category: "Core Program",
-  },
-  {
-    id: "education",
-    title: "Education & Quran Learning",
-    description: "Quality education from primary to higher levels, combined with Islamic studies and Quran memorization.",
-    fullDescription: "Education is the cornerstone of a child's future. We provide quality formal education while also nurturing spiritual growth through Quran learning and Islamic studies. Many of our children have become Hafiz-e-Quran and excel academically.",
-    icon: GraduationCap,
-    features: ["Formal Schooling", "Quran Memorization", "Tutoring Support", "Extracurricular Activities"],
-    category: "Education",
-  },
-  {
-    id: "healthcare",
-    title: "Healthcare & Medical Support",
-    description: "Regular health checkups, vaccinations, and medical treatments for all children.",
-    fullDescription: "Health is wealth. Our on-site medical facility ensures regular health checkups, vaccinations, and prompt treatment of any illnesses. We also provide dental care, eye checkups, and mental health support.",
-    icon: Stethoscope,
-    features: ["Regular Checkups", "Vaccinations", "Dental Care", "Mental Health Support"],
-    category: "Healthcare",
-  },
-  {
-    id: "nutrition",
-    title: "Food & Nutrition",
-    description: "Balanced, nutritious meals prepared with care to ensure proper growth and development.",
-    fullDescription: "Growing children need proper nutrition. Our kitchen provides three nutritious meals daily, plus snacks, prepared under hygienic conditions. Special dietary needs are accommodated, and we ensure variety in our menu.",
-    icon: Utensils,
-    features: ["Three Daily Meals", "Balanced Diet", "Special Diets", "Clean Water"],
-    category: "Nutrition",
-  },
-  {
-    id: "clothing",
-    title: "Clothing & Daily Needs",
-    description: "Quality clothing, school uniforms, and all essential daily necessities for comfortable living.",
-    fullDescription: "Every child deserves to be dressed with dignity. We provide quality clothing for all seasons, school uniforms, shoes, and personal care items. Special occasion clothes for Eid and other celebrations are also provided.",
-    icon: Shirt,
-    features: ["Seasonal Clothing", "School Uniforms", "Personal Care Items", "Eid Gifts"],
-    category: "Daily Needs",
-  },
-  {
-    id: "spiritual",
-    title: "Spiritual Development",
-    description: "Islamic education, character building, and moral values to nurture well-rounded individuals.",
-    fullDescription: "Beyond worldly education, we emphasize spiritual growth. Children learn Quran, Islamic history, ethics, and values. Regular prayers, Islamic events, and character-building activities help shape righteous individuals.",
-    icon: BookOpen,
-    features: ["Quran Classes", "Islamic Studies", "Character Building", "Prayer Guidance"],
-    category: "Spiritual",
-  },
-];
+import { useLanguage } from "@/lib/i18n";
 
 export default function ProgramsPage() {
+  const { t, isRTL } = useLanguage();
+  const ArrowIcon = isRTL ? ArrowLeft : ArrowRight;
+
+  const programs = [
+    {
+      id: "orphan-care",
+      titleKey: "programs.orphanCare",
+      descKey: "programs.orphanCareFullDesc",
+      icon: Home,
+      features: ["programs.24hourCare", "programs.nutritiousMeals", "programs.safeLiving", "programs.emotionalSupport"],
+      categoryKey: "programs.coreProgram",
+    },
+    {
+      id: "education",
+      titleKey: "programs.educationQuran",
+      descKey: "programs.educationQuranFullDesc",
+      icon: GraduationCap,
+      features: ["programs.formalSchooling", "programs.quranMemorization", "programs.tutoringSupport", "programs.extracurricular"],
+      categoryKey: "categories.education",
+    },
+    {
+      id: "healthcare",
+      titleKey: "programs.healthcareMedical",
+      descKey: "programs.healthcareMedicalFullDesc",
+      icon: Stethoscope,
+      features: ["programs.regularCheckups", "programs.vaccinations", "programs.dentalCare", "programs.mentalHealth"],
+      categoryKey: "categories.healthcare",
+    },
+    {
+      id: "food",
+      titleKey: "programs.foodNutritionProgram",
+      descKey: "programs.foodNutritionProgramFullDesc",
+      icon: Utensils,
+      features: ["programs.threeDailyMeals", "programs.balancedDiet", "programs.specialDiets", "programs.cleanWater"],
+      categoryKey: "categories.food",
+    },
+    {
+      id: "clothing",
+      titleKey: "programs.clothingDaily",
+      descKey: "programs.clothingDailyFullDesc",
+      icon: Shirt,
+      features: ["programs.seasonalClothing", "programs.schoolUniforms", "programs.personalCareItems", "programs.eidGifts"],
+      categoryKey: "categories.clothing",
+    },
+    {
+      id: "spiritual",
+      titleKey: "programs.spiritualDev",
+      descKey: "programs.spiritualDevFullDesc",
+      icon: BookOpen,
+      features: ["programs.quranClasses", "programs.islamicStudies", "programs.characterBuilding", "programs.prayerGuidance"],
+      categoryKey: "categories.education",
+    },
+  ];
+
   return (
     <main className="py-12 md:py-20">
       <div className="max-w-7xl mx-auto px-4">
-        <div className="text-center mb-16">
-          <span className="text-sm font-medium text-primary uppercase tracking-wider">Our Programs</span>
+        <div className={`text-center mb-16 ${isRTL ? "direction-rtl" : ""}`}>
+          <span className="text-sm font-medium text-primary uppercase tracking-wider">{t("programs.label")}</span>
           <h1 className="text-4xl md:text-5xl font-bold mt-2 mb-6" data-testid="text-programs-title">
-            How We Serve
+            {t("programs.title")}
           </h1>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-            Our comprehensive programs address every aspect of a child's development - 
-            from physical well-being to education, spiritual growth, and life skills.
+            {t("programs.subtitle")}
           </p>
         </div>
 
@@ -91,30 +89,30 @@ export default function ProgramsPage() {
             const Icon = program.icon;
             return (
               <Card key={program.id} className="group" data-testid={`card-program-${program.id}`}>
-                <CardHeader className="pb-4">
-                  <div className="flex items-start justify-between gap-4 flex-wrap">
+                <CardHeader className={`pb-4 ${isRTL ? "text-right" : ""}`}>
+                  <div className={`flex items-start justify-between gap-4 flex-wrap ${isRTL ? "flex-row-reverse" : ""}`}>
                     <div className="w-14 h-14 rounded-md bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
                       <Icon className="w-7 h-7 text-primary" />
                     </div>
-                    <Badge variant="secondary">{program.category}</Badge>
+                    <Badge variant="secondary">{t(program.categoryKey)}</Badge>
                   </div>
-                  <CardTitle className="text-xl mt-4">{program.title}</CardTitle>
+                  <CardTitle className="text-xl mt-4">{t(program.titleKey)}</CardTitle>
                   <CardDescription className="text-base leading-relaxed">
-                    {program.fullDescription}
+                    {t(program.descKey)}
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-2 mb-6">
-                    {program.features.map((feature, index) => (
+                <CardContent className={isRTL ? "text-right" : ""}>
+                  <div className={`flex flex-wrap gap-2 mb-6 ${isRTL ? "justify-end" : ""}`}>
+                    {program.features.map((featureKey, index) => (
                       <Badge key={index} variant="outline" className="font-normal">
-                        {feature}
+                        {t(featureKey)}
                       </Badge>
                     ))}
                   </div>
-                  <Link href={`/donate?category=${program.id === 'orphan-care' ? 'general' : program.id === 'nutrition' ? 'food' : program.id === 'spiritual' ? 'education' : program.id}`}>
-                    <Button variant="outline" className="gap-2" data-testid={`button-support-${program.id}`}>
-                      Support This Program
-                      <ArrowRight className="w-4 h-4" />
+                  <Link href={`/donate?category=${program.id === 'orphan-care' ? 'general' : program.id === 'spiritual' ? 'education' : program.id}`}>
+                    <Button variant="outline" className={`gap-2 ${isRTL ? "flex-row-reverse" : ""}`} data-testid={`button-support-${program.id}`}>
+                      {t("programs.supportProgram")}
+                      <ArrowIcon className="w-4 h-4" />
                     </Button>
                   </Link>
                 </CardContent>
@@ -123,17 +121,16 @@ export default function ProgramsPage() {
           })}
         </div>
 
-        <div className="mt-20 bg-primary/5 rounded-lg p-8 md:p-12 text-center">
+        <div className={`mt-20 bg-primary/5 rounded-lg p-8 md:p-12 text-center ${isRTL ? "direction-rtl" : ""}`}>
           <Users className="w-12 h-12 text-primary mx-auto mb-4" />
-          <h2 className="text-2xl md:text-3xl font-bold mb-4">Want to Visit Aghosh?</h2>
+          <h2 className="text-2xl md:text-3xl font-bold mb-4">{t("programs.visitAghosh")}</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto mb-6">
-            We welcome visitors who wish to see our facilities and meet the children. 
-            Schedule a visit to experience the warmth and love at Aghosh firsthand.
+            {t("programs.visitDesc")}
           </p>
           <Link href="/contact">
             <Button size="lg" data-testid="button-schedule-visit">
-              <Heart className="w-5 h-5 mr-2" />
-              Schedule a Visit
+              <Heart className={`w-5 h-5 ${isRTL ? "ml-2" : "mr-2"}`} />
+              {t("programs.scheduleVisit")}
             </Button>
           </Link>
         </div>

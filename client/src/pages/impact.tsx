@@ -6,16 +6,19 @@ import { Progress } from "@/components/ui/progress";
 import { StatisticsBar } from "@/components/sections/statistics";
 import { ImpactStoriesSection } from "@/components/sections/impact-stories";
 import { Heart, TrendingUp, Users, Target } from "lucide-react";
+import { useLanguage } from "@/lib/i18n";
 import type { Statistics, ImpactStory } from "@shared/schema";
 
-const fundingGoals = [
-  { category: "Healthcare", current: 75000, goal: 100000 },
-  { category: "Education", current: 45000, goal: 80000 },
-  { category: "Food & Nutrition", current: 60000, goal: 70000 },
-  { category: "Clothing", current: 15000, goal: 25000 },
-];
-
 export default function ImpactPage() {
+  const { t, isRTL } = useLanguage();
+  
+  const fundingGoals = [
+    { categoryKey: "categories.healthcare", current: 75000, goal: 100000 },
+    { categoryKey: "categories.education", current: 45000, goal: 80000 },
+    { categoryKey: "categories.food", current: 60000, goal: 70000 },
+    { categoryKey: "categories.clothing", current: 15000, goal: 25000 },
+  ];
+
   const { data: stories } = useQuery<ImpactStory[]>({
     queryKey: ["/api/impact-stories"],
   });
@@ -28,25 +31,24 @@ export default function ImpactPage() {
     <main>
       <section className="py-12 md:py-20 bg-gradient-to-b from-primary/5 to-background">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-16">
-            <span className="text-sm font-medium text-primary uppercase tracking-wider">Our Impact</span>
+          <div className={`text-center mb-16 ${isRTL ? "direction-rtl" : ""}`}>
+            <span className="text-sm font-medium text-primary uppercase tracking-wider">{t("impact.label")}</span>
             <h1 className="text-4xl md:text-5xl font-bold mt-2 mb-6" data-testid="text-impact-title">
-              Making a Difference Together
+              {t("impact.title")}
             </h1>
             <p className="text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-              Your donations create lasting change in the lives of orphaned children. 
-              See the impact of your generosity and how together we're building brighter futures.
+              {t("impact.subtitle")}
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+          <div className={`grid grid-cols-1 md:grid-cols-3 gap-6 mb-16 ${isRTL ? "direction-rtl" : ""}`}>
             <Card data-testid="card-total-raised">
               <CardContent className="p-6 text-center">
                 <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
                   <TrendingUp className="w-6 h-6 text-primary" />
                 </div>
                 <p className="text-3xl font-bold text-primary">$125,000+</p>
-                <p className="text-muted-foreground mt-1">Total Raised This Year</p>
+                <p className="text-muted-foreground mt-1">{t("impact.totalRaised")}</p>
               </CardContent>
             </Card>
             
@@ -56,7 +58,7 @@ export default function ImpactPage() {
                   <Users className="w-6 h-6 text-primary" />
                 </div>
                 <p className="text-3xl font-bold text-primary">2,500+</p>
-                <p className="text-muted-foreground mt-1">Generous Donors</p>
+                <p className="text-muted-foreground mt-1">{t("impact.generousDonors")}</p>
               </CardContent>
             </Card>
             
@@ -66,7 +68,7 @@ export default function ImpactPage() {
                   <Target className="w-6 h-6 text-primary" />
                 </div>
                 <p className="text-3xl font-bold text-primary">6</p>
-                <p className="text-muted-foreground mt-1">Active Programs</p>
+                <p className="text-muted-foreground mt-1">{t("impact.activePrograms")}</p>
               </CardContent>
             </Card>
           </div>
@@ -77,10 +79,10 @@ export default function ImpactPage() {
 
       <section className="py-16 md:py-24">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Funding Goals</h2>
+          <div className={`text-center mb-12 ${isRTL ? "direction-rtl" : ""}`}>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">{t("impact.fundingGoals")}</h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Help us reach our annual funding goals for each program area.
+              {t("impact.fundingGoalsSubtitle")}
             </p>
           </div>
 
@@ -89,20 +91,20 @@ export default function ImpactPage() {
               const percentage = Math.round((goal.current / goal.goal) * 100);
               return (
                 <Card key={index} data-testid={`card-goal-${index}`}>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between gap-4 mb-3 flex-wrap">
-                      <h3 className="font-semibold">{goal.category}</h3>
+                  <CardContent className={`p-6 ${isRTL ? "text-right direction-rtl" : ""}`}>
+                    <div className={`flex items-center justify-between gap-4 mb-3 flex-wrap ${isRTL ? "flex-row-reverse" : ""}`}>
+                      <h3 className="font-semibold">{t(goal.categoryKey)}</h3>
                       <span className="text-sm text-muted-foreground">
-                        {percentage}% Complete
+                        {percentage}% {t("impact.complete")}
                       </span>
                     </div>
                     <Progress value={percentage} className="h-3 mb-3" />
-                    <div className="flex items-center justify-between gap-4 text-sm flex-wrap">
+                    <div className={`flex items-center justify-between gap-4 text-sm flex-wrap ${isRTL ? "flex-row-reverse" : ""}`}>
                       <span className="text-primary font-medium">
-                        ${goal.current.toLocaleString()} raised
+                        ${goal.current.toLocaleString()} {t("impact.raised")}
                       </span>
                       <span className="text-muted-foreground">
-                        Goal: ${goal.goal.toLocaleString()}
+                        {t("impact.goal")}: ${goal.goal.toLocaleString()}
                       </span>
                     </div>
                   </CardContent>
@@ -114,8 +116,8 @@ export default function ImpactPage() {
           <div className="text-center mt-12">
             <Link href="/donate">
               <Button size="lg" data-testid="button-contribute">
-                <Heart className="w-5 h-5 mr-2" />
-                Contribute Now
+                <Heart className={`w-5 h-5 ${isRTL ? "ml-2" : "mr-2"}`} />
+                {t("impact.contributeNow")}
               </Button>
             </Link>
           </div>
@@ -125,33 +127,33 @@ export default function ImpactPage() {
       <ImpactStoriesSection stories={stories} />
 
       <section className="py-16 md:py-24 bg-accent/30">
-        <div className="max-w-4xl mx-auto px-4 text-center">
+        <div className={`max-w-4xl mx-auto px-4 text-center ${isRTL ? "direction-rtl" : ""}`}>
           <h2 className="text-3xl md:text-4xl font-bold mb-6">
-            Every Dollar Makes a Difference
+            {t("impact.everyDollarMatters")}
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-12">
             <Card data-testid="card-impact-25">
               <CardContent className="p-6">
                 <p className="text-3xl font-bold text-primary mb-2">$25</p>
-                <p className="text-muted-foreground">Provides meals for one child for a month</p>
+                <p className="text-muted-foreground">{t("impact.25impact")}</p>
               </CardContent>
             </Card>
             <Card data-testid="card-impact-50">
               <CardContent className="p-6">
                 <p className="text-3xl font-bold text-primary mb-2">$50</p>
-                <p className="text-muted-foreground">Covers school supplies for a semester</p>
+                <p className="text-muted-foreground">{t("impact.50impact")}</p>
               </CardContent>
             </Card>
             <Card data-testid="card-impact-100">
               <CardContent className="p-6">
                 <p className="text-3xl font-bold text-primary mb-2">$100</p>
-                <p className="text-muted-foreground">Provides medical checkups for 5 children</p>
+                <p className="text-muted-foreground">{t("impact.100impact")}</p>
               </CardContent>
             </Card>
           </div>
           <Link href="/donate">
             <Button size="lg" data-testid="button-make-donation">
-              Make a Donation Today
+              {t("impact.makeDonationToday")}
             </Button>
           </Link>
         </div>
