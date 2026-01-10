@@ -31,11 +31,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { 
-  Heart, 
-  GraduationCap, 
-  Utensils, 
-  Shirt, 
+import {
+  Heart,
+  GraduationCap,
+  Utensils,
+  Shirt,
   HandHeart,
   CheckCircle,
   Shield,
@@ -46,7 +46,9 @@ import {
   ArrowLeft,
   CreditCard,
   Building2,
-  Copy
+  Copy,
+  RefreshCw,
+  Calendar
 } from "lucide-react";
 import { useLanguage } from "@/lib/i18n";
 import { type DonationCategory } from "@shared/schema";
@@ -81,6 +83,8 @@ const donationFormSchema = z.object({
   donationType: z.enum(["zakat", "sadaqah", "charity", "funds"]).default("sadaqah"),
   paymentMethod: z.enum(["card", "bank"]).default("card"),
   isAnonymous: z.boolean().default(false),
+  isRecurring: z.boolean().default(false),
+  recurringInterval: z.enum(["monthly", "quarterly", "yearly"]).optional(),
   message: z.string().optional(),
 });
 
@@ -109,16 +113,16 @@ function DonateForm() {
 
   const ArrowIcon = isRTL ? ArrowLeft : ArrowRight;
 
-  const { data: exchangeData } = useQuery({
+  const { data: exchangeData } = useQuery<{ rates: Record<string, number> }>({
     queryKey: ['/api/exchange-rates'],
   });
 
   const exchangeRates = exchangeData?.rates || {
     usd: 278.50,
-    cad: 205.00,
-    gbp: 352.00,
-    aed: 75.85,
-    eur: 302.00,
+    cad: 201.89,
+    gbp: 351.20,
+    aed: 75.82,
+    eur: 287.50,
     pkr: 1,
   };
 
@@ -141,6 +145,8 @@ function DonateForm() {
       donationType: "sadaqah",
       paymentMethod: "card",
       isAnonymous: false,
+      isRecurring: false,
+      recurringInterval: "monthly",
       message: "",
     },
   });
@@ -435,6 +441,87 @@ function DonateForm() {
                   )}
                 />
 
+                {/* Recurring Donation Toggle */}
+                <div className={`space-y-4 ${isRTL ? "text-right" : ""}`}>
+                  <FormLabel className="text-base font-semibold">
+                    {t("donate.donationFrequency") || "Donation Frequency"}
+                  </FormLabel>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button
+                      type="button"
+                      variant={!form.watch("isRecurring") ? "default" : "outline"}
+                      className="h-14"
+                      onClick={() => form.setValue("isRecurring", false)}
+                      data-testid="button-one-time"
+                    >
+                      <div className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+                        <Heart className="w-5 h-5" />
+                        <span>{t("donate.oneTime") || "One-Time"}</span>
+                      </div>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={form.watch("isRecurring") ? "default" : "outline"}
+                      className="h-14"
+                      onClick={() => form.setValue("isRecurring", true)}
+                      data-testid="button-recurring"
+                    >
+                      <div className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+                        <RefreshCw className="w-5 h-5" />
+                        <span>{t("donate.recurring") || "Recurring"}</span>
+                      </div>
+                    </Button>
+                  </div>
+
+                  {form.watch("isRecurring") && (
+                    <FormField
+                      control={form.control}
+                      name="recurringInterval"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t("donate.recurringInterval") || "Frequency"}</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select frequency" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="monthly">
+                                <div className="flex items-center gap-2">
+                                  <Calendar className="w-4 h-4" />
+                                  {t("donate.monthly") || "Monthly"}
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="quarterly">
+                                <div className="flex items-center gap-2">
+                                  <Calendar className="w-4 h-4" />
+                                  {t("donate.quarterly") || "Quarterly (Every 3 months)"}
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="yearly">
+                                <div className="flex items-center gap-2">
+                                  <Calendar className="w-4 h-4" />
+                                  {t("donate.yearly") || "Yearly"}
+                                </div>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+
+                  {form.watch("isRecurring") && (
+                    <div className="p-3 bg-primary/5 rounded-md border border-primary/20">
+                      <p className="text-sm text-muted-foreground">
+                        {t("donate.recurringNote") || "Recurring donations help us plan better and provide consistent support to orphans. You can cancel anytime."}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
                 <div className="space-y-4">
                   <FormField
                     control={form.control}
@@ -488,25 +575,33 @@ function DonateForm() {
                               ))}
                             </div>
                             <div className="relative">
-                              <span className={`absolute top-1/2 -translate-y-1/2 text-muted-foreground ${isRTL ? "right-3" : "left-3"}`}>
+                              <span className={`absolute top-1/2 -translate-y-1/2 text-muted-foreground font-medium ${isRTL ? "right-3" : "left-3"}`}>
                                 {getCurrencySymbol(selectedCurrency)}
                               </span>
                               <Input
                                 type="number"
                                 placeholder={t("donate.enterCustom")}
-                                className={isRTL ? "pr-7" : "pl-7"}
+                                className={isRTL ? "pr-8" : "pl-8"}
                                 value={customAmount}
                                 onChange={(e) => handleCustomAmountChange(e.target.value)}
                                 data-testid="input-custom-amount"
                               />
                             </div>
                             {selectedAmount > 0 && selectedCurrency !== 'pkr' && (
-                              <div className={`p-3 bg-secondary/10 rounded-md border border-secondary/20 ${isRTL ? "text-right" : ""}`}>
-                                <p className="text-sm text-muted-foreground">
-                                  {t("donate.pkrEquivalent")}:
-                                </p>
-                                <p className="text-lg font-semibold text-secondary">
-                                  PKR {getPkrEquivalent(selectedAmount, selectedCurrency).toLocaleString()}
+                              <div className={`p-4 bg-gradient-to-r from-emerald-500/10 to-green-500/10 rounded-lg border border-emerald-500/20 ${isRTL ? "text-right" : ""}`}>
+                                <div className={`flex items-center gap-2 mb-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+                                  <RefreshCw className="w-4 h-4 text-emerald-600" />
+                                  <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
+                                    {t("donate.liveConversion")}
+                                  </p>
+                                </div>
+                                <div className={`flex items-baseline gap-2 ${isRTL ? "flex-row-reverse justify-end" : ""}`}>
+                                  <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                                    PKR {getPkrEquivalent(selectedAmount, selectedCurrency).toLocaleString()}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-2">
+                                  {t("donate.exchangeRate")}: 1 {selectedCurrency.toUpperCase()} = PKR {exchangeRates[selectedCurrency.toLowerCase()]?.toLocaleString()}
                                 </p>
                               </div>
                             )}
@@ -836,32 +931,510 @@ function DonateForm() {
 
 export default function DonatePage() {
   const [stripePromise, setStripePromise] = useState<ReturnType<typeof loadStripe> | null>(null);
+  const [stripeConfigured, setStripeConfigured] = useState<boolean | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/stripe/publishable-key")
+    // First check if Stripe is configured
+    fetch("/api/stripe/status")
       .then((res) => res.json())
       .then((data) => {
-        if (data.publishableKey) {
-          setStripePromise(loadStripe(data.publishableKey));
+        setStripeConfigured(data.configured);
+        if (data.configured) {
+          // If Stripe is configured, load the publishable key
+          return fetch("/api/stripe/publishable-key")
+            .then((res) => res.json())
+            .then((keyData) => {
+              if (keyData.publishableKey) {
+                setStripePromise(loadStripe(keyData.publishableKey));
+              }
+            });
         }
       })
-      .catch((err) => console.error("Failed to load Stripe key:", err));
+      .catch((err) => {
+        console.error("Failed to check Stripe status:", err);
+        setStripeConfigured(false);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, []);
 
-  if (!stripePromise) {
+  if (loading) {
     return (
       <main className="py-12 md:py-20">
         <div className="max-w-3xl mx-auto px-4 text-center">
           <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading payment system...</p>
+          <p className="text-muted-foreground">Loading...</p>
         </div>
       </main>
     );
   }
 
+  // If Stripe is configured and loaded, use Elements wrapper
+  if (stripeConfigured && stripePromise) {
+    return (
+      <Elements stripe={stripePromise}>
+        <DonateForm />
+      </Elements>
+    );
+  }
+
+  // If Stripe is not configured, show form without Stripe (bank transfer only)
+  return <DonateFormBankOnly />;
+}
+
+// Separate component for bank-only donations (no Stripe)
+function DonateFormBankOnly() {
+  const { t, isRTL } = useLanguage();
+  const searchString = useSearch();
+  const params = new URLSearchParams(searchString);
+  const categoryParam = params.get("category") as DonationCategory | null;
+
+  const [customAmount, setCustomAmount] = useState("");
+  const { toast } = useToast();
+
+  const ArrowIcon = isRTL ? ArrowLeft : ArrowRight;
+
+  const { data: exchangeData } = useQuery<{ rates: Record<string, number> }>({
+    queryKey: ['/api/exchange-rates'],
+  });
+
+  const exchangeRates = exchangeData?.rates || {
+    usd: 278.50,
+    cad: 201.89,
+    gbp: 351.20,
+    aed: 75.82,
+    eur: 287.50,
+    pkr: 1,
+  };
+
+  const categories = [
+    { id: "healthcare", icon: "Heart", titleKey: "categories.healthcare" },
+    { id: "education", icon: "GraduationCap", titleKey: "categories.education" },
+    { id: "food", icon: "Utensils", titleKey: "categories.food" },
+    { id: "clothing", icon: "Shirt", titleKey: "categories.clothing" },
+    { id: "general", icon: "HandHeart", titleKey: "categories.general" },
+  ];
+
+  const form = useForm<DonationFormData>({
+    resolver: zodResolver(donationFormSchema),
+    defaultValues: {
+      donorName: "",
+      email: "",
+      amount: 0,
+      currency: "pkr",
+      category: categoryParam || "",
+      donationType: "sadaqah",
+      paymentMethod: "bank",
+      isAnonymous: false,
+      message: "",
+    },
+  });
+
+  useEffect(() => {
+    if (categoryParam) {
+      form.setValue("category", categoryParam);
+    }
+  }, [categoryParam, form]);
+
+  const onSubmit = async (data: DonationFormData) => {
+    toast({
+      title: t("donate.bankTransfer"),
+      description: t("donate.bankNote"),
+    });
+  };
+
+  const handleAmountSelect = (amount: number) => {
+    form.setValue("amount", amount);
+    setCustomAmount("");
+  };
+
+  const handleCustomAmountChange = (value: string) => {
+    setCustomAmount(value);
+    const numValue = parseInt(value) || 0;
+    form.setValue("amount", numValue);
+  };
+
+  const selectedAmount = form.watch("amount");
+  const selectedCurrency = form.watch("currency");
+  const isAnonymous = form.watch("isAnonymous");
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: t("donate.copied"),
+      description: text,
+    });
+  };
+
+  const getCurrencySymbol = (code: string) => {
+    return currencies.find(c => c.code === code)?.symbol || "$";
+  };
+
+  const getPkrEquivalent = (amount: number, currency: string) => {
+    const rate = exchangeRates[currency.toLowerCase()] || 1;
+    return Math.round(amount * rate);
+  };
+
   return (
-    <Elements stripe={stripePromise}>
-      <DonateForm />
-    </Elements>
+    <main className="py-12 md:py-20">
+      <div className="max-w-3xl mx-auto px-4">
+        <div className={`text-center mb-12 ${isRTL ? "direction-rtl" : ""}`}>
+          <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-4 ${isRTL ? "flex-row-reverse" : ""}`}>
+            <span className="font-arabic text-base">صَدَقَةٌ</span>
+            <span className="text-sm text-muted-foreground">{t("donate.charity")}</span>
+          </div>
+          <h1 className="text-4xl md:text-5xl font-bold mb-4" data-testid="text-donate-title">
+            {t("donate.title")} <span className="text-primary">{t("donate.titleHighlight")}</span>
+          </h1>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            {t("donate.subtitle")}
+          </p>
+        </div>
+
+        <Card>
+          <CardHeader className={isRTL ? "text-right" : ""}>
+            <CardTitle>{t("donate.makeADonation")}</CardTitle>
+            <CardDescription>
+              {t("donate.fillDetails")}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                <FormField
+                  control={form.control}
+                  name="category"
+                  render={({ field }) => (
+                    <FormItem className={isRTL ? "text-right" : ""}>
+                      <FormLabel className="text-base font-semibold">
+                        {t("donate.selectPurpose")}
+                      </FormLabel>
+                      <FormControl>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {categories.map((category) => {
+                            const Icon = iconMap[category.icon] || Heart;
+                            const isSelected = field.value === category.id;
+                            return (
+                              <div
+                                key={category.id}
+                                className={`
+                                  relative flex items-center gap-3 p-4 rounded-md border cursor-pointer transition-all
+                                  ${isRTL ? "flex-row-reverse" : ""}
+                                  ${isSelected
+                                    ? "border-primary bg-primary/5"
+                                    : "border-border hover:border-primary/50"
+                                  }
+                                `}
+                                onClick={() => field.onChange(category.id)}
+                              >
+                                <div className={`
+                                  w-10 h-10 rounded-md flex items-center justify-center flex-shrink-0
+                                  ${isSelected ? "bg-primary text-primary-foreground" : "bg-accent"}
+                                `}>
+                                  <Icon className="w-5 h-5" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-sm">{t(category.titleKey)}</p>
+                                </div>
+                                {isSelected && (
+                                  <CheckCircle className="w-5 h-5 text-primary flex-shrink-0" />
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="donationType"
+                  render={({ field }) => (
+                    <FormItem className={isRTL ? "text-right" : ""}>
+                      <FormLabel className="text-base font-semibold">
+                        {t("donate.donationType")}
+                      </FormLabel>
+                      <FormControl>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                          <Button
+                            type="button"
+                            variant={field.value === "zakat" ? "default" : "outline"}
+                            className="h-16"
+                            onClick={() => field.onChange("zakat")}
+                          >
+                            <div className="flex flex-col items-center gap-0.5">
+                              <span className="font-arabic text-base">زَكَاة</span>
+                              <span className="text-xs">{t("donate.zakat")}</span>
+                            </div>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant={field.value === "sadaqah" ? "default" : "outline"}
+                            className="h-16"
+                            onClick={() => field.onChange("sadaqah")}
+                          >
+                            <div className="flex flex-col items-center gap-0.5">
+                              <span className="font-arabic text-base">صَدَقَة</span>
+                              <span className="text-xs">{t("donate.sadaqah")}</span>
+                            </div>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant={field.value === "charity" ? "default" : "outline"}
+                            className="h-16"
+                            onClick={() => field.onChange("charity")}
+                          >
+                            <div className="flex flex-col items-center gap-0.5">
+                              <span className="font-arabic text-base">خَيْرَات</span>
+                              <span className="text-xs">{t("donate.charity")}</span>
+                            </div>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant={field.value === "funds" ? "default" : "outline"}
+                            className="h-16"
+                            onClick={() => field.onChange("funds")}
+                          >
+                            <div className="flex flex-col items-center gap-0.5">
+                              <span className="font-arabic text-base">فَنْڈز</span>
+                              <span className="text-xs">{t("donate.funds")}</span>
+                            </div>
+                          </Button>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="currency"
+                    render={({ field }) => (
+                      <FormItem className={isRTL ? "text-right" : ""}>
+                        <FormLabel className="text-base font-semibold">
+                          {t("donate.selectCurrency")}
+                        </FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select currency" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {currencies.map((currency) => (
+                              <SelectItem key={currency.code} value={currency.code}>
+                                {currency.symbol} {currency.name} ({currency.code.toUpperCase()})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="amount"
+                    render={({ field }) => (
+                      <FormItem className={isRTL ? "text-right" : ""}>
+                        <FormLabel className="text-base font-semibold">
+                          {t("donate.selectAmount")}
+                        </FormLabel>
+                        <FormControl>
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-3 gap-2">
+                              {(selectedCurrency === 'pkr' ? presetAmountsPKR : presetAmountsOther).map((amount) => (
+                                <Button
+                                  key={amount}
+                                  type="button"
+                                  variant={selectedAmount === amount && !customAmount ? "default" : "outline"}
+                                  className="h-11 text-sm sm:text-base"
+                                  onClick={() => handleAmountSelect(amount)}
+                                >
+                                  {getCurrencySymbol(selectedCurrency)}{amount}
+                                </Button>
+                              ))}
+                            </div>
+                            <div className="relative">
+                              <span className={`absolute top-1/2 -translate-y-1/2 text-muted-foreground font-medium ${isRTL ? "right-3" : "left-3"}`}>
+                                {getCurrencySymbol(selectedCurrency)}
+                              </span>
+                              <Input
+                                type="number"
+                                placeholder={t("donate.enterCustom")}
+                                className={isRTL ? "pr-8" : "pl-8"}
+                                value={customAmount}
+                                onChange={(e) => handleCustomAmountChange(e.target.value)}
+                              />
+                            </div>
+                            {selectedAmount > 0 && selectedCurrency !== 'pkr' && (
+                              <div className={`p-4 bg-gradient-to-r from-emerald-500/10 to-green-500/10 rounded-lg border border-emerald-500/20 ${isRTL ? "text-right" : ""}`}>
+                                <div className={`flex items-center gap-2 mb-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+                                  <RefreshCw className="w-4 h-4 text-emerald-600" />
+                                  <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
+                                    {t("donate.liveConversion")}
+                                  </p>
+                                </div>
+                                <div className={`flex items-baseline gap-2 ${isRTL ? "flex-row-reverse justify-end" : ""}`}>
+                                  <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                                    PKR {getPkrEquivalent(selectedAmount, selectedCurrency).toLocaleString()}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-2">
+                                  {t("donate.exchangeRate")}: 1 {selectedCurrency.toUpperCase()} = PKR {exchangeRates[selectedCurrency.toLowerCase()]?.toLocaleString()}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Bank Transfer Details */}
+                <div className={`p-4 bg-accent/50 rounded-md border ${isRTL ? "text-right" : ""}`}>
+                  <div className={`flex items-center gap-2 mb-3 ${isRTL ? "flex-row-reverse" : ""}`}>
+                    <Building2 className="w-5 h-5 text-primary" />
+                    <h4 className="font-semibold">{t("donate.bankDetails")}</h4>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <div className={`flex justify-between items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+                      <span className="text-muted-foreground">{t("donate.bankName")}:</span>
+                      <div className={`flex items-center gap-1 ${isRTL ? "flex-row-reverse" : ""}`}>
+                        <span className="font-medium">Meezan Bank Limited</span>
+                        <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard("Meezan Bank Limited")}>
+                          <Copy className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div className={`flex justify-between items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+                      <span className="text-muted-foreground">{t("donate.accountTitle")}:</span>
+                      <div className={`flex items-center gap-1 ${isRTL ? "flex-row-reverse" : ""}`}>
+                        <span className="font-medium">Minhaj Welfare Foundation</span>
+                        <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard("Minhaj Welfare Foundation")}>
+                          <Copy className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div className={`flex justify-between items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+                      <span className="text-muted-foreground">{t("donate.accountNumber")}:</span>
+                      <div className={`flex items-center gap-1 ${isRTL ? "flex-row-reverse" : ""}`}>
+                        <span className="font-medium font-mono">0101-0105-3297-51</span>
+                        <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard("0101-0105-3297-51")}>
+                          <Copy className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div className={`flex justify-between items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+                      <span className="text-muted-foreground">IBAN:</span>
+                      <div className={`flex items-center gap-1 ${isRTL ? "flex-row-reverse" : ""}`}>
+                        <span className="font-medium font-mono text-xs">PK36MEZN0101010532975100</span>
+                        <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard("PK36MEZN0101010532975100")}>
+                          <Copy className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-3">
+                    {t("donate.bankNote")}
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="isAnonymous"
+                    render={({ field }) => (
+                      <FormItem className={`flex flex-row items-center gap-3 space-y-0 ${isRTL ? "flex-row-reverse" : ""}`}>
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <FormLabel className="font-normal cursor-pointer">
+                          {t("donate.donateAnonymously")}
+                        </FormLabel>
+                      </FormItem>
+                    )}
+                  />
+
+                  {!isAnonymous && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="donorName"
+                        render={({ field }) => (
+                          <FormItem className={isRTL ? "text-right" : ""}>
+                            <FormLabel>{t("donate.yourName")}</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder={t("donate.yourName")}
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem className={isRTL ? "text-right" : ""}>
+                            <FormLabel>{t("donate.emailAddress")}</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="email"
+                                placeholder={t("donate.emailAddress")}
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {selectedAmount > 0 && (
+                  <div className={`p-4 bg-gradient-to-r from-primary/5 to-primary/10 rounded-md border border-primary/20 ${isRTL ? "text-right" : ""}`}>
+                    <p className="text-sm text-muted-foreground mb-1">{t("donate.donationSummary")}</p>
+                    <div className={`flex items-baseline gap-2 ${isRTL ? "flex-row-reverse justify-end" : ""}`}>
+                      <span className="text-3xl font-bold text-primary">{getCurrencySymbol(selectedCurrency)}{selectedAmount}</span>
+                      <span className="text-sm text-muted-foreground">{selectedCurrency.toUpperCase()}</span>
+                    </div>
+                    {selectedCurrency !== 'pkr' && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        = PKR {getPkrEquivalent(selectedAmount, selectedCurrency).toLocaleString()}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                <div className="text-center p-4 bg-primary/10 rounded-md border border-primary/20">
+                  <p className="text-sm text-muted-foreground mb-2">{t("donate.bankInstructions")}</p>
+                  <p className="font-semibold text-primary">
+                    {selectedAmount > 0 && `${getCurrencySymbol(selectedCurrency)}${selectedAmount} (PKR ${getPkrEquivalent(selectedAmount, selectedCurrency).toLocaleString()})`}
+                  </p>
+                </div>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      </div>
+    </main>
   );
 }

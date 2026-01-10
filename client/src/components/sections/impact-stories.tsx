@@ -99,9 +99,9 @@ export function ImpactStoriesSection({ stories }: ImpactStoriesProps) {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {displayStories.map((story) => (
-            <Card 
-              key={story.id} 
-              className="group hover-elevate transition-all duration-300 overflow-visible"
+            <Card
+              key={story.id}
+              className="group elevated-card transition-all duration-300 overflow-visible"
               data-testid={`card-story-${story.id}`}
             >
               <div className="aspect-[4/3] bg-accent/50 flex items-center justify-center rounded-t-md">

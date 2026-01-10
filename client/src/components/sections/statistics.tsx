@@ -1,5 +1,6 @@
 import { Heart, GraduationCap, Utensils, Stethoscope } from "lucide-react";
 import { useLanguage } from "@/lib/i18n";
+import { ScrollReveal, StaggerContainer, StaggerItem, ScaleIn } from "@/lib/animations";
 import type { Statistics } from "@shared/schema";
 
 interface StatisticsBarProps {
@@ -54,26 +55,29 @@ export function StatisticsBar({ statistics = defaultStats }: StatisticsBarProps)
   return (
     <section className="py-16 md:py-20 bg-primary text-primary-foreground">
       <div className="max-w-7xl mx-auto px-4">
-        <div className={`grid grid-cols-2 lg:grid-cols-4 gap-8 ${isRTL ? "direction-rtl" : ""}`}>
+        <StaggerContainer staggerDelay={0.15} className={`grid grid-cols-2 lg:grid-cols-4 gap-8 ${isRTL ? "direction-rtl" : ""}`}>
           {stats.map((stat, index) => {
             const Icon = stat.icon;
             return (
-              <div 
-                key={index} 
-                className="text-center"
-                data-testid={`stat-bar-${index}`}
-              >
-                <div className="w-14 h-14 rounded-full bg-primary-foreground/10 flex items-center justify-center mx-auto mb-4">
-                  <Icon className="w-7 h-7" />
+              <StaggerItem key={index}>
+                <div
+                  className="text-center"
+                  data-testid={`stat-bar-${index}`}
+                >
+                  <ScaleIn delay={index * 0.1}>
+                    <div className="w-14 h-14 rounded-full bg-primary-foreground/10 flex items-center justify-center mx-auto mb-4">
+                      <Icon className="w-7 h-7" />
+                    </div>
+                  </ScaleIn>
+                  <p className="text-3xl md:text-4xl font-bold mb-2">
+                    {formatNumber(stat.value)}{stat.suffix}
+                  </p>
+                  <p className="text-sm md:text-base opacity-90">{t(stat.labelKey)}</p>
                 </div>
-                <p className="text-3xl md:text-4xl font-bold mb-2">
-                  {formatNumber(stat.value)}{stat.suffix}
-                </p>
-                <p className="text-sm md:text-base opacity-90">{t(stat.labelKey)}</p>
-              </div>
+              </StaggerItem>
             );
           })}
-        </div>
+        </StaggerContainer>
       </div>
     </section>
   );

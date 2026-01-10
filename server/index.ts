@@ -1,10 +1,12 @@
+import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
-import { runMigrations } from 'stripe-replit-sync';
-import { getStripeSync } from "./stripeClient";
+import { isStripeConfigured } from "./stripeClient";
 import { WebhookHandlers } from "./webhookHandlers";
+import { storage } from "./storage";
+import { testConnection } from "./db";
 
 const app = express();
 const httpServer = createServer(app);
@@ -26,57 +28,34 @@ export function log(message: string, source = "express") {
   console.log(`${formattedTime} [${source}] ${message}`);
 }
 
-async function initStripe() {
-  const databaseUrl = process.env.DATABASE_URL;
-
-  if (!databaseUrl) {
-    console.log('DATABASE_URL not set - Stripe integration will be limited');
-    return;
+async function initializeApp() {
+  // Test database connection
+  const dbConnected = await testConnection();
+  if (!dbConnected) {
+    console.error("Failed to connect to database. Please check your DATABASE_URL.");
+    process.exit(1);
   }
 
+  // Initialize database with seed data
   try {
-    console.log('Initializing Stripe schema...');
-    await runMigrations({ 
-      databaseUrl,
-      schema: 'stripe'
-    });
-    console.log('Stripe schema ready');
-
-    const stripeSync = await getStripeSync();
-
-    const replitDomains = process.env.REPLIT_DOMAINS;
-    if (replitDomains) {
-      console.log('Setting up managed webhook...');
-      const webhookBaseUrl = `https://${replitDomains.split(',')[0]}`;
-      try {
-        const result = await stripeSync.findOrCreateManagedWebhook(
-          `${webhookBaseUrl}/api/stripe/webhook`);
-        if (result?.webhook?.url) {
-          console.log(`Webhook configured: ${result.webhook.url}`);
-        }
-      } catch (webhookError: any) {
-        console.log('Webhook setup skipped:', webhookError.message);
-      }
-    } else {
-      console.log('REPLIT_DOMAINS not set - webhook setup skipped');
-    }
-
-    console.log('Syncing Stripe data...');
-    stripeSync.syncBackfill()
-      .then(() => {
-        console.log('Stripe data synced');
-      })
-      .catch((err: any) => {
-        console.error('Error syncing Stripe data:', err);
-      });
+    await storage.initializeDatabase();
   } catch (error) {
-    console.error('Failed to initialize Stripe:', error);
+    console.error("Failed to initialize database:", error);
+    process.exit(1);
+  }
+
+  // Check Stripe configuration
+  if (isStripeConfigured()) {
+    console.log("Stripe configured - Card payments enabled");
+  } else {
+    console.log("Stripe not configured - Card payments disabled. Bank Transfer available.");
   }
 }
 
 (async () => {
-  await initStripe();
+  await initializeApp();
 
+  // Stripe webhook endpoint (must be before express.json() middleware)
   app.post(
     '/api/stripe/webhook',
     express.raw({ type: 'application/json' }),
@@ -160,14 +139,7 @@ async function initStripe() {
   }
 
   const port = parseInt(process.env.PORT || "5000", 10);
-  httpServer.listen(
-    {
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    },
-    () => {
-      log(`serving on port ${port}`);
-    },
-  );
+  httpServer.listen(port, () => {
+    log(`serving on port ${port}`);
+  });
 })();

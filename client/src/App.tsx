@@ -1,13 +1,15 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/lib/theme-provider";
 import { LanguageProvider } from "@/lib/i18n";
+import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { MobileBottomNav } from "@/components/layout/mobile-nav";
+import { AnimatePresence, PageTransition } from "@/lib/animations";
 import HomePage from "@/pages/home";
 import AboutPage from "@/pages/about";
 import ProgramsPage from "@/pages/programs";
@@ -16,7 +18,57 @@ import ImpactPage from "@/pages/impact";
 import ContactPage from "@/pages/contact";
 import AdminLoginPage from "@/pages/admin/login";
 import AdminDashboardPage from "@/pages/admin/dashboard";
+import AdminSettingsPage from "@/pages/admin/settings";
+import DonorLoginPage from "@/pages/donor/login";
+import DonorSignupPage from "@/pages/donor/signup";
+import DonorDashboardPage from "@/pages/donor/dashboard";
+import WelcomePage from "@/pages/welcome";
+import EventsPage from "@/pages/events";
+import VolunteerPage from "@/pages/volunteer";
+import SponsorshipPage from "@/pages/sponsorship";
 import NotFound from "@/pages/not-found";
+
+// Auth guard - requires login for all pages except public/auth pages
+function AuthGuard({ children }: { children: React.ReactNode }) {
+  const [location] = useLocation();
+  const { isAuthenticated, isLoading } = useAuth();
+
+  // Public paths that don't require authentication (admin paths are separate auth)
+  const publicPaths = ["/welcome", "/donor/signup", "/donor/login", "/login", "/signup", "/admin", "/admin/dashboard", "/admin/settings"];
+  const isPublicPath = publicPaths.some(path => location === path || location.startsWith(path + "/"));
+
+  // Show nothing while checking auth state
+  if (isLoading) {
+    return null;
+  }
+
+  // If not authenticated and not on public page, show welcome page
+  if (!isAuthenticated && !isPublicPath) {
+    return <WelcomePage />;
+  }
+
+  return <>{children}</>;
+}
+
+// Welcome page redirect - if logged in, go to home
+function WelcomeRedirect() {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return null;
+  }
+
+  // If already logged in, redirect to home
+  if (isAuthenticated) {
+    return <Redirect to="/" />;
+  }
+
+  return (
+    <PageTransition>
+      <WelcomePage />
+    </PageTransition>
+  );
+}
 
 function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -38,54 +90,134 @@ function AdminLayout({ children }: { children: React.ReactNode }) {
 }
 
 function Router() {
+  const [location] = useLocation();
+
   return (
-    <Switch>
-      <Route path="/">
-        <PublicLayout>
-          <HomePage />
-        </PublicLayout>
-      </Route>
-      <Route path="/about">
-        <PublicLayout>
-          <AboutPage />
-        </PublicLayout>
-      </Route>
-      <Route path="/programs">
-        <PublicLayout>
-          <ProgramsPage />
-        </PublicLayout>
-      </Route>
-      <Route path="/donate">
-        <PublicLayout>
-          <DonatePage />
-        </PublicLayout>
-      </Route>
-      <Route path="/impact">
-        <PublicLayout>
-          <ImpactPage />
-        </PublicLayout>
-      </Route>
-      <Route path="/contact">
-        <PublicLayout>
-          <ContactPage />
-        </PublicLayout>
-      </Route>
-      <Route path="/admin">
-        <AdminLayout>
-          <AdminLoginPage />
-        </AdminLayout>
-      </Route>
-      <Route path="/admin/dashboard">
-        <AdminLayout>
-          <AdminDashboardPage />
-        </AdminLayout>
-      </Route>
-      <Route>
-        <PublicLayout>
-          <NotFound />
-        </PublicLayout>
-      </Route>
-    </Switch>
+    <AnimatePresence mode="wait">
+      <Switch location={location} key={location}>
+        <Route path="/">
+          <PublicLayout>
+            <PageTransition>
+              <HomePage />
+            </PageTransition>
+          </PublicLayout>
+        </Route>
+        <Route path="/about">
+          <PublicLayout>
+            <PageTransition>
+              <AboutPage />
+            </PageTransition>
+          </PublicLayout>
+        </Route>
+        <Route path="/programs">
+          <PublicLayout>
+            <PageTransition>
+              <ProgramsPage />
+            </PageTransition>
+          </PublicLayout>
+        </Route>
+        <Route path="/donate">
+          <PublicLayout>
+            <PageTransition>
+              <DonatePage />
+            </PageTransition>
+          </PublicLayout>
+        </Route>
+        <Route path="/impact">
+          <PublicLayout>
+            <PageTransition>
+              <ImpactPage />
+            </PageTransition>
+          </PublicLayout>
+        </Route>
+        <Route path="/contact">
+          <PublicLayout>
+            <PageTransition>
+              <ContactPage />
+            </PageTransition>
+          </PublicLayout>
+        </Route>
+        <Route path="/events">
+          <PublicLayout>
+            <PageTransition>
+              <EventsPage />
+            </PageTransition>
+          </PublicLayout>
+        </Route>
+        <Route path="/volunteer">
+          <PublicLayout>
+            <PageTransition>
+              <VolunteerPage />
+            </PageTransition>
+          </PublicLayout>
+        </Route>
+        <Route path="/sponsorship">
+          <PublicLayout>
+            <PageTransition>
+              <SponsorshipPage />
+            </PageTransition>
+          </PublicLayout>
+        </Route>
+        <Route path="/admin">
+          <AdminLayout>
+            <PageTransition>
+              <AdminLoginPage />
+            </PageTransition>
+          </AdminLayout>
+        </Route>
+        <Route path="/admin/dashboard">
+          <AdminLayout>
+            <PageTransition>
+              <AdminDashboardPage />
+            </PageTransition>
+          </AdminLayout>
+        </Route>
+        <Route path="/admin/settings">
+          <AdminLayout>
+            <PageTransition>
+              <AdminSettingsPage />
+            </PageTransition>
+          </AdminLayout>
+        </Route>
+        <Route path="/login">
+          <Redirect to="/donor/login" />
+        </Route>
+        <Route path="/signup">
+          <Redirect to="/donor/signup" />
+        </Route>
+        <Route path="/welcome">
+          <WelcomeRedirect />
+        </Route>
+        <Route path="/donor/login">
+          <PublicLayout>
+            <PageTransition>
+              <DonorLoginPage />
+            </PageTransition>
+          </PublicLayout>
+        </Route>
+        <Route path="/donor/signup">
+          <PublicLayout>
+            <PageTransition>
+              <DonorSignupPage />
+            </PageTransition>
+          </PublicLayout>
+        </Route>
+        <Route path="/donor/dashboard">
+          <PublicLayout>
+            <PageTransition>
+              <DonorDashboardPage />
+            </PageTransition>
+          </PublicLayout>
+        </Route>
+        <Route>
+          <PublicLayout>
+            <PageTransition>
+              <NotFound />
+            </PageTransition>
+          </PublicLayout>
+        </Route>
+      </Switch>
+    </AnimatePresence>
   );
 }
 
@@ -94,10 +226,14 @@ function App() {
     <ThemeProvider defaultTheme="light" storageKey="aghosh-theme">
       <LanguageProvider>
         <QueryClientProvider client={queryClient}>
-          <TooltipProvider>
-            <Toaster />
-            <Router />
-          </TooltipProvider>
+          <AuthProvider>
+            <TooltipProvider>
+              <Toaster />
+              <AuthGuard>
+                <Router />
+              </AuthGuard>
+            </TooltipProvider>
+          </AuthProvider>
         </QueryClientProvider>
       </LanguageProvider>
     </ThemeProvider>

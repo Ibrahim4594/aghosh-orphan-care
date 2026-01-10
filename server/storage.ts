@@ -1,288 +1,262 @@
-import { 
-  type User, 
-  type InsertUser, 
-  type Donation, 
+import {
+  type User,
+  type InsertUser,
+  type Donation,
   type InsertDonation,
   type Program,
   type InsertProgram,
   type ImpactStory,
   type InsertImpactStory,
   type Statistics,
-  categoryInfoList
+  type Donor,
+  type InsertDonor,
+  type ContactMessage,
+  type InsertContactMessage,
+  type Event,
+  type InsertEvent,
+  type Volunteer,
+  type InsertVolunteer,
+  type Child,
+  type InsertChild,
+  type Sponsorship,
+  type InsertSponsorship,
+  users,
+  donors,
+  donations,
+  programs,
+  impactStories,
+  contactMessages,
+  events,
+  volunteers,
+  children,
+  sponsorships,
 } from "@shared/schema";
-import { randomUUID, createHash } from "crypto";
+import { db } from "./db";
+import { eq, desc, sql } from "drizzle-orm";
+import bcrypt from "bcryptjs";
 
 // Hash password utility
-function hashPassword(password: string): string {
-  return createHash('sha256').update(password).digest('hex');
+async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, 10);
+}
+
+// Verify password utility
+export async function verifyPassword(password: string, hash: string): Promise<boolean> {
+  return bcrypt.compare(password, hash);
 }
 
 export interface IStorage {
-  // Users
+  // Users (Admin)
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  
+
+  // Donors
+  getDonor(id: string): Promise<Donor | undefined>;
+  getDonorByEmail(email: string): Promise<Donor | undefined>;
+  createDonor(donor: InsertDonor): Promise<Donor>;
+  updateDonor(id: string, donor: Partial<InsertDonor>): Promise<Donor | undefined>;
+  getDonationsByDonorId(donorId: string): Promise<Donation[]>;
+
   // Donations
   getDonations(): Promise<Donation[]>;
   getDonation(id: string): Promise<Donation | undefined>;
   createDonation(donation: InsertDonation): Promise<Donation>;
   getDonationsByCategory(category: string): Promise<Donation[]>;
-  
+
   // Programs
   getPrograms(): Promise<Program[]>;
   getProgram(id: string): Promise<Program | undefined>;
   createProgram(program: InsertProgram): Promise<Program>;
   updateProgram(id: string, program: Partial<InsertProgram>): Promise<Program | undefined>;
-  
+
   // Impact Stories
   getImpactStories(): Promise<ImpactStory[]>;
   getImpactStory(id: string): Promise<ImpactStory | undefined>;
   createImpactStory(story: InsertImpactStory): Promise<ImpactStory>;
   updateImpactStory(id: string, story: Partial<InsertImpactStory>): Promise<ImpactStory | undefined>;
-  
+
   // Statistics
   getStatistics(): Promise<Statistics>;
+
+  // Contact Messages
+  getContactMessages(): Promise<ContactMessage[]>;
+  getContactMessage(id: string): Promise<ContactMessage | undefined>;
+  createContactMessage(message: InsertContactMessage): Promise<ContactMessage>;
+  updateContactMessage(id: string, update: Partial<ContactMessage>): Promise<ContactMessage | undefined>;
+
+  // Events
+  getEvents(): Promise<Event[]>;
+  getEvent(id: string): Promise<Event | undefined>;
+  createEvent(event: InsertEvent): Promise<Event>;
+  updateEvent(id: string, event: Partial<InsertEvent>): Promise<Event | undefined>;
+  deleteEvent(id: string): Promise<boolean>;
+
+  // Volunteers
+  getVolunteers(): Promise<Volunteer[]>;
+  getVolunteer(id: string): Promise<Volunteer | undefined>;
+  createVolunteer(volunteer: InsertVolunteer): Promise<Volunteer>;
+  updateVolunteer(id: string, volunteer: Partial<Volunteer>): Promise<Volunteer | undefined>;
+
+  // Children (Sponsorship)
+  getChildren(): Promise<Child[]>;
+  getChild(id: string): Promise<Child | undefined>;
+  getAvailableChildren(): Promise<Child[]>;
+  createChild(child: InsertChild): Promise<Child>;
+  updateChild(id: string, child: Partial<InsertChild>): Promise<Child | undefined>;
+
+  // Sponsorships
+  getSponsorships(): Promise<Sponsorship[]>;
+  getSponsorship(id: string): Promise<Sponsorship | undefined>;
+  getSponsorshipsByDonorId(donorId: string): Promise<Sponsorship[]>;
+  createSponsorship(sponsorship: InsertSponsorship): Promise<Sponsorship>;
+  updateSponsorship(id: string, sponsorship: Partial<Sponsorship>): Promise<Sponsorship | undefined>;
+
+  // Database initialization
+  initializeDatabase(): Promise<void>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<string, User>;
-  private donations: Map<string, Donation>;
-  private programs: Map<string, Program>;
-  private impactStories: Map<string, ImpactStory>;
-
-  constructor() {
-    this.users = new Map();
-    this.donations = new Map();
-    this.programs = new Map();
-    this.impactStories = new Map();
-    
-    this.seedData();
-  }
-
-  private seedData() {
-    // Create admin user with hashed password
-    const adminId = randomUUID();
-    this.users.set(adminId, {
-      id: adminId,
-      username: "admin",
-      password: hashPassword("admin123"), // Store hashed password
-    });
-
-    // Seed programs
-    const programsData: InsertProgram[] = [
-      {
-        title: "Orphan Care Program",
-        description: "Comprehensive care for orphaned children including shelter, food, clothing, and emotional support.",
-        category: "general",
-        imageUrl: null,
-        isActive: true,
-      },
-      {
-        title: "Education & Quran Learning",
-        description: "Quality education from primary to higher levels, combined with Islamic studies and Quran memorization.",
-        category: "education",
-        imageUrl: null,
-        isActive: true,
-      },
-      {
-        title: "Healthcare & Medical Support",
-        description: "Regular health checkups, vaccinations, and medical treatments for all children.",
-        category: "health",
-        imageUrl: null,
-        isActive: true,
-      },
-      {
-        title: "Food & Nutrition",
-        description: "Balanced, nutritious meals prepared with care to ensure proper growth and development.",
-        category: "food",
-        imageUrl: null,
-        isActive: true,
-      },
-      {
-        title: "Clothing & Daily Needs",
-        description: "Quality clothing, school uniforms, and all essential daily necessities for comfortable living.",
-        category: "clothing",
-        imageUrl: null,
-        isActive: true,
-      },
-    ];
-
-    programsData.forEach(program => {
-      const id = randomUUID();
-      this.programs.set(id, { id, ...program });
-    });
-
-    // Seed impact stories
-    const storiesData: InsertImpactStory[] = [
-      {
-        title: "A New Beginning for Ahmed",
-        content: "Ahmed came to Aghosh at age 6 after losing both parents. Today, he excels in his studies and dreams of becoming a doctor to help others. With your support, Ahmed received proper nutrition, quality education, and the love of a caring family. He is now one of the top students in his class and participates actively in sports and Quran recitation competitions.",
-        childName: "Ahmed",
-        childAge: 12,
-        imageUrl: null,
-        isPublished: true,
-      },
-      {
-        title: "Fatima's Journey to Success",
-        content: "Fatima arrived at the orphanage malnourished and withdrawn. Through dedicated care, nutritious meals, and education, she has blossomed into a confident young girl who loves to help others. She now teaches younger children how to read and dreams of becoming a teacher herself.",
-        childName: "Fatima",
-        childAge: 10,
-        imageUrl: null,
-        isPublished: true,
-      },
-      {
-        title: "Ibrahim Finds His Voice",
-        content: "When Ibrahim first came to us, he barely spoke. Through patient care, counseling, and the support of his new family at Aghosh, he has become an outgoing child who loves to recite the Quran. His beautiful voice now leads the morning prayers.",
-        childName: "Ibrahim",
-        childAge: 8,
-        imageUrl: null,
-        isPublished: true,
-      },
-    ];
-
-    storiesData.forEach(story => {
-      const id = randomUUID();
-      this.impactStories.set(id, { 
-        id, 
-        ...story, 
-        createdAt: new Date() 
-      });
-    });
-
-    // Seed some sample donations
-    const sampleDonations: InsertDonation[] = [
-      { donorName: "Muhammad Ali", email: "ali@example.com", amount: 100, category: "education", isAnonymous: false, paymentMethod: "card" },
-      { donorName: null, email: null, amount: 250, category: "health", isAnonymous: true, paymentMethod: "bank" },
-      { donorName: "Sarah Khan", email: "sarah@example.com", amount: 50, category: "food", isAnonymous: false, paymentMethod: "card" },
-      { donorName: "Ahmed Hassan", email: "ahmed@example.com", amount: 500, category: "general", isAnonymous: false, paymentMethod: "wallet" },
-      { donorName: null, email: null, amount: 75, category: "clothing", isAnonymous: true, paymentMethod: "card" },
-    ];
-
-    sampleDonations.forEach((donation, index) => {
-      const id = randomUUID();
-      const createdAt = new Date();
-      createdAt.setDate(createdAt.getDate() - index);
-      this.donations.set(id, { id, ...donation, createdAt });
-    });
-  }
-
+export class DatabaseStorage implements IStorage {
   // User methods
   async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+    const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
+    return result[0];
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const result = await db.select().from(users).where(eq(users.username, username)).limit(1);
+    return result[0];
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { 
-      ...insertUser, 
-      id,
-      password: hashPassword(insertUser.password) // Hash password on creation
-    };
-    this.users.set(id, user);
-    return user;
+    const hashedPassword = await hashPassword(insertUser.password);
+    const result = await db.insert(users).values({
+      ...insertUser,
+      password: hashedPassword,
+    }).returning();
+    return result[0];
+  }
+
+  // Donor methods
+  async getDonor(id: string): Promise<Donor | undefined> {
+    const result = await db.select().from(donors).where(eq(donors.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getDonorByEmail(email: string): Promise<Donor | undefined> {
+    const result = await db.select().from(donors).where(eq(donors.email, email.toLowerCase())).limit(1);
+    return result[0];
+  }
+
+  async createDonor(insertDonor: InsertDonor): Promise<Donor> {
+    const hashedPassword = await hashPassword(insertDonor.password);
+    const result = await db.insert(donors).values({
+      ...insertDonor,
+      email: insertDonor.email.toLowerCase(),
+      password: hashedPassword,
+    }).returning();
+    return result[0];
+  }
+
+  async updateDonor(id: string, donorUpdate: Partial<InsertDonor>): Promise<Donor | undefined> {
+    // If updating password, hash it
+    if (donorUpdate.password) {
+      donorUpdate.password = await hashPassword(donorUpdate.password);
+    }
+
+    const result = await db.update(donors)
+      .set(donorUpdate)
+      .where(eq(donors.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async getDonationsByDonorId(donorId: string): Promise<Donation[]> {
+    return db.select()
+      .from(donations)
+      .where(eq(donations.donorId, donorId))
+      .orderBy(desc(donations.createdAt));
   }
 
   // Donation methods
   async getDonations(): Promise<Donation[]> {
-    return Array.from(this.donations.values()).sort((a, b) => {
-      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      return dateB - dateA;
-    });
+    return db.select().from(donations).orderBy(desc(donations.createdAt));
   }
 
   async getDonation(id: string): Promise<Donation | undefined> {
-    return this.donations.get(id);
+    const result = await db.select().from(donations).where(eq(donations.id, id)).limit(1);
+    return result[0];
   }
 
   async createDonation(donation: InsertDonation): Promise<Donation> {
-    const id = randomUUID();
-    const newDonation: Donation = { 
-      id, 
-      ...donation, 
-      createdAt: new Date() 
-    };
-    this.donations.set(id, newDonation);
-    return newDonation;
+    const result = await db.insert(donations).values(donation).returning();
+    return result[0];
   }
 
   async getDonationsByCategory(category: string): Promise<Donation[]> {
-    return Array.from(this.donations.values()).filter(d => d.category === category);
+    return db.select().from(donations).where(eq(donations.category, category));
   }
 
   // Program methods
   async getPrograms(): Promise<Program[]> {
-    return Array.from(this.programs.values()).filter(p => p.isActive);
+    return db.select().from(programs).where(eq(programs.isActive, true));
   }
 
   async getProgram(id: string): Promise<Program | undefined> {
-    return this.programs.get(id);
+    const result = await db.select().from(programs).where(eq(programs.id, id)).limit(1);
+    return result[0];
   }
 
   async createProgram(program: InsertProgram): Promise<Program> {
-    const id = randomUUID();
-    const newProgram: Program = { id, ...program };
-    this.programs.set(id, newProgram);
-    return newProgram;
+    const result = await db.insert(programs).values(program).returning();
+    return result[0];
   }
 
   async updateProgram(id: string, program: Partial<InsertProgram>): Promise<Program | undefined> {
-    const existing = this.programs.get(id);
-    if (!existing) return undefined;
-    
-    const updated = { ...existing, ...program };
-    this.programs.set(id, updated);
-    return updated;
+    const result = await db.update(programs)
+      .set(program)
+      .where(eq(programs.id, id))
+      .returning();
+    return result[0];
   }
 
   // Impact Story methods
   async getImpactStories(): Promise<ImpactStory[]> {
-    return Array.from(this.impactStories.values())
-      .filter(s => s.isPublished)
-      .sort((a, b) => {
-        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-        return dateB - dateA;
-      });
+    return db.select()
+      .from(impactStories)
+      .where(eq(impactStories.isPublished, true))
+      .orderBy(desc(impactStories.createdAt));
   }
 
   async getImpactStory(id: string): Promise<ImpactStory | undefined> {
-    return this.impactStories.get(id);
+    const result = await db.select().from(impactStories).where(eq(impactStories.id, id)).limit(1);
+    return result[0];
   }
 
   async createImpactStory(story: InsertImpactStory): Promise<ImpactStory> {
-    const id = randomUUID();
-    const newStory: ImpactStory = { 
-      id, 
-      ...story, 
+    const result = await db.insert(impactStories).values({
+      ...story,
       isPublished: story.isPublished ?? true,
-      createdAt: new Date() 
-    };
-    this.impactStories.set(id, newStory);
-    return newStory;
+    }).returning();
+    return result[0];
   }
 
   async updateImpactStory(id: string, story: Partial<InsertImpactStory>): Promise<ImpactStory | undefined> {
-    const existing = this.impactStories.get(id);
-    if (!existing) return undefined;
-    
-    const updated = { ...existing, ...story };
-    this.impactStories.set(id, updated);
-    return updated;
+    const result = await db.update(impactStories)
+      .set(story)
+      .where(eq(impactStories.id, id))
+      .returning();
+    return result[0];
   }
 
   // Statistics
   async getStatistics(): Promise<Statistics> {
-    const donations = Array.from(this.donations.values());
-    const totalDonations = donations.reduce((sum, d) => sum + d.amount, 0);
-    
+    const result = await db.select({
+      totalDonations: sql<number>`COALESCE(SUM(${donations.amount}), 0)`,
+    }).from(donations);
+
+    const totalDonations = Number(result[0]?.totalDonations || 0);
+
     return {
       totalDonations,
       childrenSupported: 527,
@@ -291,6 +265,171 @@ export class MemStorage implements IStorage {
       medicalTreatments: 1850,
     };
   }
+
+  // Contact Message methods
+  async getContactMessages(): Promise<ContactMessage[]> {
+    return db.select().from(contactMessages).orderBy(desc(contactMessages.createdAt));
+  }
+
+  async getContactMessage(id: string): Promise<ContactMessage | undefined> {
+    const result = await db.select().from(contactMessages).where(eq(contactMessages.id, id)).limit(1);
+    return result[0];
+  }
+
+  async createContactMessage(message: InsertContactMessage): Promise<ContactMessage> {
+    const result = await db.insert(contactMessages).values(message).returning();
+    return result[0];
+  }
+
+  async updateContactMessage(id: string, update: Partial<ContactMessage>): Promise<ContactMessage | undefined> {
+    const result = await db.update(contactMessages)
+      .set(update)
+      .where(eq(contactMessages.id, id))
+      .returning();
+    return result[0];
+  }
+
+  // Event methods
+  async getEvents(): Promise<Event[]> {
+    return db.select()
+      .from(events)
+      .where(eq(events.isActive, true))
+      .orderBy(desc(events.date));
+  }
+
+  async getEvent(id: string): Promise<Event | undefined> {
+    const result = await db.select().from(events).where(eq(events.id, id)).limit(1);
+    return result[0];
+  }
+
+  async createEvent(event: InsertEvent): Promise<Event> {
+    const result = await db.insert(events).values(event).returning();
+    return result[0];
+  }
+
+  async updateEvent(id: string, event: Partial<InsertEvent>): Promise<Event | undefined> {
+    const result = await db.update(events)
+      .set(event)
+      .where(eq(events.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteEvent(id: string): Promise<boolean> {
+    const result = await db.delete(events).where(eq(events.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Volunteer methods
+  async getVolunteers(): Promise<Volunteer[]> {
+    return db.select().from(volunteers).orderBy(desc(volunteers.createdAt));
+  }
+
+  async getVolunteer(id: string): Promise<Volunteer | undefined> {
+    const result = await db.select().from(volunteers).where(eq(volunteers.id, id)).limit(1);
+    return result[0];
+  }
+
+  async createVolunteer(volunteer: InsertVolunteer): Promise<Volunteer> {
+    const result = await db.insert(volunteers).values(volunteer).returning();
+    return result[0];
+  }
+
+  async updateVolunteer(id: string, volunteer: Partial<Volunteer>): Promise<Volunteer | undefined> {
+    const result = await db.update(volunteers)
+      .set(volunteer)
+      .where(eq(volunteers.id, id))
+      .returning();
+    return result[0];
+  }
+
+  // Children methods
+  async getChildren(): Promise<Child[]> {
+    return db.select().from(children).where(eq(children.isActive, true));
+  }
+
+  async getChild(id: string): Promise<Child | undefined> {
+    const result = await db.select().from(children).where(eq(children.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getAvailableChildren(): Promise<Child[]> {
+    return db.select()
+      .from(children)
+      .where(sql`${children.isActive} = true AND ${children.isSponsored} = false`);
+  }
+
+  async createChild(child: InsertChild): Promise<Child> {
+    const result = await db.insert(children).values(child).returning();
+    return result[0];
+  }
+
+  async updateChild(id: string, child: Partial<InsertChild>): Promise<Child | undefined> {
+    const result = await db.update(children)
+      .set(child)
+      .where(eq(children.id, id))
+      .returning();
+    return result[0];
+  }
+
+  // Sponsorship methods
+  async getSponsorships(): Promise<Sponsorship[]> {
+    return db.select().from(sponsorships).orderBy(desc(sponsorships.createdAt));
+  }
+
+  async getSponsorship(id: string): Promise<Sponsorship | undefined> {
+    const result = await db.select().from(sponsorships).where(eq(sponsorships.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getSponsorshipsByDonorId(donorId: string): Promise<Sponsorship[]> {
+    return db.select()
+      .from(sponsorships)
+      .where(eq(sponsorships.donorId, donorId))
+      .orderBy(desc(sponsorships.createdAt));
+  }
+
+  async createSponsorship(sponsorship: InsertSponsorship): Promise<Sponsorship> {
+    const result = await db.insert(sponsorships).values(sponsorship).returning();
+    // Mark child as sponsored
+    await db.update(children)
+      .set({ isSponsored: true })
+      .where(eq(children.id, sponsorship.childId));
+    return result[0];
+  }
+
+  async updateSponsorship(id: string, sponsorship: Partial<Sponsorship>): Promise<Sponsorship | undefined> {
+    const result = await db.update(sponsorships)
+      .set(sponsorship)
+      .where(eq(sponsorships.id, id))
+      .returning();
+    return result[0];
+  }
+
+  // Initialize database - only create admin user
+  async initializeDatabase(): Promise<void> {
+    try {
+      // Check if admin user exists
+      const existingAdmin = await this.getUserByUsername("admin123");
+
+      if (!existingAdmin) {
+        console.log("Initializing database...");
+
+        // Create admin user
+        await this.createUser({
+          username: "admin123",
+          password: "123456",
+        });
+        console.log("Admin user created (username: admin123, password: 123456)");
+        console.log("Database initialization complete!");
+      } else {
+        console.log("Database already initialized");
+      }
+    } catch (error) {
+      console.error("Error initializing database:", error);
+      throw error;
+    }
+  }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();

@@ -6,15 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Progress } from "@/components/ui/progress";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -30,480 +22,863 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { 
-  Heart, 
-  DollarSign, 
-  Users, 
-  TrendingUp,
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import {
   LogOut,
   Plus,
-  FileText,
-  Settings,
   Home,
-  RefreshCw,
-  Loader2
+  Loader2,
+  Baby,
+  Calendar,
+  Check,
+  X,
+  Users,
+  Trash2,
+  Heart,
+  TrendingUp,
+  DollarSign,
+  UserCheck,
+  Clock,
+  CalendarDays,
+  Settings,
 } from "lucide-react";
-import type { Donation, Statistics, ImpactStory, Program } from "@shared/schema";
-import { categoryInfoList } from "@shared/schema";
 import { apiRequest, queryClient, clearAuthToken } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/lib/i18n";
+import { LanguageToggle } from "@/components/language-toggle";
+
+// Schemas
+const childSchema = z.object({
+  name: z.string().min(2, "Name is required"),
+  age: z.coerce.number().min(1).max(18),
+  gender: z.enum(["male", "female"]),
+  grade: z.string().optional(),
+  story: z.string().optional(),
+  needs: z.string().optional(),
+  monthlyAmount: z.coerce.number().min(1000).default(5000),
+});
+
+const eventSchema = z.object({
+  title: z.string().min(2, "Title is required"),
+  description: z.string().min(10, "Description is required"),
+  date: z.string().min(1, "Date is required"),
+  location: z.string().min(2, "Location is required"),
+  eventType: z.enum(["general", "fundraiser", "volunteer", "religious"]).default("general"),
+});
+
+type ChildFormData = z.infer<typeof childSchema>;
+type EventFormData = z.infer<typeof eventSchema>;
+
+interface Volunteer {
+  id: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  availability: string;
+  status: "pending" | "approved" | "rejected";
+  createdAt: string;
+}
+
+interface Child {
+  id: string;
+  name: string;
+  age: number;
+  gender: string;
+  grade?: string;
+  monthlyAmount: number;
+  isSponsored: boolean;
+}
+
+interface Event {
+  id: string;
+  title: string;
+  description: string;
+  date: string;
+  location: string;
+  eventType: string;
+}
+
+// Simple bar component for charts
+function SimpleBar({ label, value, maxValue, color }: { label: string; value: number; maxValue: number; color: string }) {
+  const percentage = maxValue > 0 ? (value / maxValue) * 100 : 0;
+  return (
+    <div className="space-y-1">
+      <div className="flex justify-between text-sm">
+        <span className="text-muted-foreground">{label}</span>
+        <span className="font-medium">{value}</span>
+      </div>
+      <div className="h-2 bg-muted rounded-full overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all duration-500 ${color}`}
+          style={{ width: `${percentage}%` }}
+        />
+      </div>
+    </div>
+  );
+}
 
 export default function AdminDashboardPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [showAddStory, setShowAddStory] = useState(false);
-  const [showAddProgram, setShowAddProgram] = useState(false);
+  const { t, isRTL } = useLanguage();
+  const [isChildDialogOpen, setIsChildDialogOpen] = useState(false);
+  const [isEventDialogOpen, setIsEventDialogOpen] = useState(false);
 
-  const { data: donations, isLoading: donationsLoading } = useQuery<Donation[]>({
-    queryKey: ["/api/donations"],
+  // Queries
+  const { data: volunteers = [], isLoading: volunteersLoading } = useQuery<Volunteer[]>({
+    queryKey: ["/api/admin/volunteers"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", "/api/admin/volunteers", undefined);
+      return res.json();
+    },
   });
 
-  const { data: statistics, isLoading: statsLoading, refetch: refetchStats } = useQuery<Statistics>({
-    queryKey: ["/api/statistics"],
+  const { data: children = [], isLoading: childrenLoading } = useQuery<Child[]>({
+    queryKey: ["/api/children"],
   });
 
-  const { data: stories } = useQuery<ImpactStory[]>({
-    queryKey: ["/api/impact-stories"],
+  const { data: events = [], isLoading: eventsLoading } = useQuery<Event[]>({
+    queryKey: ["/api/events"],
   });
 
-  const { data: programs } = useQuery<Program[]>({
-    queryKey: ["/api/programs"],
+  // Forms
+  const childForm = useForm<ChildFormData>({
+    resolver: zodResolver(childSchema),
+    defaultValues: {
+      name: "",
+      age: 5,
+      gender: "male",
+      grade: "",
+      story: "",
+      needs: "",
+      monthlyAmount: 5000,
+    },
   });
 
+  const eventForm = useForm<EventFormData>({
+    resolver: zodResolver(eventSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      date: "",
+      location: "",
+      eventType: "general",
+    },
+  });
+
+  // Mutations
   const logoutMutation = useMutation({
     mutationFn: async () => {
       await apiRequest("POST", "/api/admin/logout", {});
     },
     onSuccess: () => {
       clearAuthToken();
-      toast({
-        title: "Logged Out",
-        description: "You have been logged out successfully.",
-      });
-      setLocation("/admin");
+      localStorage.removeItem("admin_token");
+      toast({ title: t("admin.logout") });
+      setLocation("/donor/login");
     },
   });
 
-  const addStoryMutation = useMutation({
-    mutationFn: async (data: { title: string; content: string; childName: string; childAge: number }) => {
-      const response = await apiRequest("POST", "/api/impact-stories", data);
+  const updateVolunteerMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const response = await apiRequest("PATCH", `/api/admin/volunteers/${id}`, { status });
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/impact-stories"] });
-      setShowAddStory(false);
-      toast({
-        title: "Story Added",
-        description: "The impact story has been published.",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Failed to add story",
-        description: error.message,
-        variant: "destructive",
-      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/volunteers"] });
+      toast({ title: t("admin.volunteerUpdated") });
     },
   });
 
-  const addProgramMutation = useMutation({
-    mutationFn: async (data: { title: string; description: string; category: string }) => {
-      const response = await apiRequest("POST", "/api/programs", data);
+  const createChildMutation = useMutation({
+    mutationFn: async (data: ChildFormData) => {
+      const response = await apiRequest("POST", "/api/admin/children", data);
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/programs"] });
-      setShowAddProgram(false);
-      toast({
-        title: "Program Added",
-        description: "The program has been added successfully.",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Failed to add program",
-        description: error.message,
-        variant: "destructive",
-      });
+      queryClient.invalidateQueries({ queryKey: ["/api/children"] });
+      setIsChildDialogOpen(false);
+      childForm.reset();
+      toast({ title: t("admin.childCreated") });
     },
   });
 
-  const getCategoryLabel = (categoryId: string) => {
-    return categoryInfoList.find(c => c.id === categoryId)?.title || categoryId;
+  const createEventMutation = useMutation({
+    mutationFn: async (data: EventFormData) => {
+      const response = await apiRequest("POST", "/api/events", {
+        ...data,
+        date: new Date(data.date).toISOString(),
+        isActive: true,
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      setIsEventDialogOpen(false);
+      eventForm.reset();
+      toast({ title: t("admin.eventCreated") });
+    },
+  });
+
+  const deleteEventMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiRequest("DELETE", `/api/events/${id}`, undefined);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      toast({ title: t("admin.eventDeleted") });
+    },
+  });
+
+  // Stats calculations
+  const pendingVolunteers = volunteers.filter(v => v.status === "pending");
+  const approvedVolunteers = volunteers.filter(v => v.status === "approved");
+  const sponsoredChildren = children.filter(c => c.isSponsored);
+  const availableChildren = children.filter(c => !c.isSponsored);
+  const upcomingEvents = events.filter(e => new Date(e.date) > new Date());
+  const totalMonthlySponsorship = sponsoredChildren.reduce((sum, c) => sum + c.monthlyAmount, 0);
+
+  // Event type distribution
+  const eventTypeStats = {
+    general: events.filter(e => e.eventType === "general").length,
+    fundraiser: events.filter(e => e.eventType === "fundraiser").length,
+    volunteer: events.filter(e => e.eventType === "volunteer").length,
+    religious: events.filter(e => e.eventType === "religious").length,
   };
 
-  const donationsByCategory = donations?.reduce((acc, d) => {
-    acc[d.category] = (acc[d.category] || 0) + d.amount;
-    return acc;
-  }, {} as Record<string, number>) || {};
-
-  const totalDonations = donations?.reduce((sum, d) => sum + d.amount, 0) || 0;
-  const recentDonations = donations?.slice(0, 10) || [];
-
-  const formatDate = (date: Date | string | null) => {
-    if (!date) return "N/A";
-    return new Date(date).toLocaleDateString("en-US", {
+  const formatDate = (date: string) => {
+    return new Date(date).toLocaleDateString(isRTL ? "ur-PK" : "en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
   return (
-    <main className="py-8">
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="flex items-center justify-between gap-4 mb-8 flex-wrap">
+    <main className={`min-h-screen bg-gradient-to-br from-background via-background to-muted/20 ${isRTL ? "direction-rtl" : ""}`}>
+      {/* Header */}
+      <header className="border-b bg-card/80 backdrop-blur-sm sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold" data-testid="text-dashboard-title">Admin Dashboard</h1>
-            <p className="text-muted-foreground">Manage donations, programs, and impact stories</p>
+            <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+              {t("admin.dashboard")}
+            </h1>
+            <p className="text-sm text-muted-foreground">{t("admin.manageOrphanage")}</p>
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <Link href="/">
-              <Button variant="outline" size="default">
-                <Home className="w-4 h-4 mr-2" />
-                View Site
+          <div className="flex items-center gap-3">
+            <LanguageToggle />
+            <Link href="/admin/settings">
+              <Button variant="outline" size="sm">
+                <Settings className={`w-4 h-4 ${isRTL ? "ml-2" : "mr-2"}`} />
+                {t("admin.settings")}
               </Button>
             </Link>
-            <Button 
-              variant="ghost" 
+            <Link href="/">
+              <Button variant="outline" size="sm">
+                <Home className={`w-4 h-4 ${isRTL ? "ml-2" : "mr-2"}`} />
+                {t("admin.viewSite")}
+              </Button>
+            </Link>
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => logoutMutation.mutate()}
               disabled={logoutMutation.isPending}
-              data-testid="button-logout"
             >
-              <LogOut className="w-4 h-4 mr-2" />
-              Logout
+              <LogOut className={`w-4 h-4 ${isRTL ? "ml-2" : "mr-2"}`} />
+              {t("admin.logout")}
             </Button>
           </div>
         </div>
+      </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card data-testid="card-stat-total">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between gap-4">
+      {/* Main Content */}
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-200/50">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Total Donations</p>
-                  <p className="text-2xl font-bold">${totalDonations.toLocaleString()}</p>
+                  <p className="text-sm text-muted-foreground">{t("admin.totalChildren")}</p>
+                  <p className="text-3xl font-bold text-blue-600">{children.length}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {sponsoredChildren.length} {t("admin.sponsored")}
+                  </p>
                 </div>
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <DollarSign className="w-6 h-6 text-primary" />
+                <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center">
+                  <Baby className="w-6 h-6 text-blue-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card data-testid="card-stat-donors">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between gap-4">
+          <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-200/50">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Total Donors</p>
-                  <p className="text-2xl font-bold">{donations?.length || 0}</p>
+                  <p className="text-sm text-muted-foreground">{t("admin.monthlyRevenue")}</p>
+                  <p className="text-3xl font-bold text-green-600">
+                    {totalMonthlySponsorship > 0 ? `${(totalMonthlySponsorship / 1000).toFixed(0)}K` : "0"}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">{t("admin.fromSponsors")}</p>
                 </div>
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Users className="w-6 h-6 text-primary" />
+                <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
+                  <DollarSign className="w-6 h-6 text-green-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card data-testid="card-stat-children">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between gap-4">
+          <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-200/50">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Children Supported</p>
-                  <p className="text-2xl font-bold">{statistics?.childrenSupported || 527}</p>
+                  <p className="text-sm text-muted-foreground">{t("admin.volunteers")}</p>
+                  <p className="text-3xl font-bold text-purple-600">{approvedVolunteers.length}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {pendingVolunteers.length} {t("admin.pending")}
+                  </p>
                 </div>
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Heart className="w-6 h-6 text-primary" />
+                <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center">
+                  <Users className="w-6 h-6 text-purple-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card data-testid="card-stat-programs">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between gap-4">
+          <Card className="bg-gradient-to-br from-orange-500/10 to-orange-600/5 border-orange-200/50">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Active Programs</p>
-                  <p className="text-2xl font-bold">{programs?.length || 6}</p>
+                  <p className="text-sm text-muted-foreground">{t("admin.upcomingEvents")}</p>
+                  <p className="text-3xl font-bold text-orange-600">{upcomingEvents.length}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {events.length} {t("admin.total")}
+                  </p>
                 </div>
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <TrendingUp className="w-6 h-6 text-primary" />
+                <div className="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center">
+                  <CalendarDays className="w-6 h-6 text-orange-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-8 mb-8">
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between gap-4 flex-wrap">
-                <div>
-                  <CardTitle>Recent Donations</CardTitle>
-                  <CardDescription>Latest donations received</CardDescription>
+        {/* Charts Row */}
+        <div className="grid md:grid-cols-2 gap-6 mb-8">
+          {/* Children Stats */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Heart className="w-5 h-5 text-pink-500" />
+                {t("admin.childrenOverview")}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-center py-4">
+                <div className="relative w-32 h-32">
+                  {/* Donut Chart */}
+                  <svg className="w-full h-full transform -rotate-90">
+                    <circle
+                      cx="64"
+                      cy="64"
+                      r="56"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="12"
+                      className="text-muted/30"
+                    />
+                    <circle
+                      cx="64"
+                      cy="64"
+                      r="56"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="12"
+                      strokeDasharray={`${children.length > 0 ? (sponsoredChildren.length / children.length) * 352 : 0} 352`}
+                      className="text-green-500 transition-all duration-500"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-2xl font-bold">{children.length > 0 ? Math.round((sponsoredChildren.length / children.length) * 100) : 0}%</span>
+                    <span className="text-xs text-muted-foreground">{t("admin.sponsored")}</span>
+                  </div>
                 </div>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/donations"] })}
-                  data-testid="button-refresh-donations"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                </Button>
+              </div>
+              <div className="grid grid-cols-2 gap-4 text-center">
+                <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-lg">
+                  <p className="text-2xl font-bold text-green-600">{sponsoredChildren.length}</p>
+                  <p className="text-xs text-muted-foreground">{t("admin.sponsored")}</p>
+                </div>
+                <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg">
+                  <p className="text-2xl font-bold text-amber-600">{availableChildren.length}</p>
+                  <p className="text-xs text-muted-foreground">{t("admin.needSponsors")}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Event Distribution */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-blue-500" />
+                {t("admin.eventDistribution")}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-4">
+              <SimpleBar
+                label={t("admin.generalEvents")}
+                value={eventTypeStats.general}
+                maxValue={Math.max(...Object.values(eventTypeStats), 1)}
+                color="bg-blue-500"
+              />
+              <SimpleBar
+                label={t("admin.fundraisers")}
+                value={eventTypeStats.fundraiser}
+                maxValue={Math.max(...Object.values(eventTypeStats), 1)}
+                color="bg-green-500"
+              />
+              <SimpleBar
+                label={t("admin.volunteerEvents")}
+                value={eventTypeStats.volunteer}
+                maxValue={Math.max(...Object.values(eventTypeStats), 1)}
+                color="bg-purple-500"
+              />
+              <SimpleBar
+                label={t("admin.religiousEvents")}
+                value={eventTypeStats.religious}
+                maxValue={Math.max(...Object.values(eventTypeStats), 1)}
+                color="bg-amber-500"
+              />
+              {events.length === 0 && (
+                <p className="text-center text-sm text-muted-foreground py-4">
+                  {t("admin.noEventsYet")}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Management Tabs */}
+        <Tabs defaultValue="children" className="w-full">
+          <TabsList className="grid w-full grid-cols-3 mb-6">
+            <TabsTrigger value="children" className="flex items-center gap-2">
+              <Baby className="w-4 h-4" />
+              {t("admin.children")}
+              <Badge variant="secondary" className="ml-1">{children.length}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="events" className="flex items-center gap-2">
+              <Calendar className="w-4 h-4" />
+              {t("admin.events")}
+              <Badge variant="secondary" className="ml-1">{events.length}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="volunteers" className="flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              {t("admin.volunteers")}
+              {pendingVolunteers.length > 0 && (
+                <Badge variant="destructive" className="ml-1">{pendingVolunteers.length}</Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Children Tab */}
+          <TabsContent value="children">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>{t("admin.childrenForSponsorship")}</CardTitle>
+                  <CardDescription>{t("admin.addChildrenDesc")}</CardDescription>
+                </div>
+                <Dialog open={isChildDialogOpen} onOpenChange={setIsChildDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className={`w-4 h-4 ${isRTL ? "ml-2" : "mr-2"}`} />
+                      {t("admin.addChild")}
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>{t("admin.addNewChild")}</DialogTitle>
+                      <DialogDescription>{t("admin.childWillAppear")}</DialogDescription>
+                    </DialogHeader>
+                    <Form {...childForm}>
+                      <form onSubmit={childForm.handleSubmit((data) => createChildMutation.mutate(data))} className="space-y-4">
+                        <FormField
+                          control={childForm.control}
+                          name="name"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>{t("admin.name")} *</FormLabel>
+                              <FormControl>
+                                <Input placeholder={t("admin.childsName")} {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <div className="grid grid-cols-2 gap-4">
+                          <FormField
+                            control={childForm.control}
+                            name="age"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>{t("admin.age")} *</FormLabel>
+                                <FormControl>
+                                  <Input type="number" min="1" max="18" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={childForm.control}
+                            name="gender"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>{t("admin.gender")} *</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="male">{t("admin.boy")}</SelectItem>
+                                    <SelectItem value="female">{t("admin.girl")}</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                        <FormField
+                          control={childForm.control}
+                          name="grade"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>{t("admin.gradeClass")}</FormLabel>
+                              <FormControl>
+                                <Input placeholder="e.g., Class 5" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={childForm.control}
+                          name="monthlyAmount"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>{t("admin.monthlyAmount")} *</FormLabel>
+                              <FormControl>
+                                <Input type="number" min="1000" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <Button type="submit" className="w-full" disabled={createChildMutation.isPending}>
+                          {createChildMutation.isPending && <Loader2 className={`w-4 h-4 ${isRTL ? "ml-2" : "mr-2"} animate-spin`} />}
+                          {t("admin.addChild")}
+                        </Button>
+                      </form>
+                    </Form>
+                  </DialogContent>
+                </Dialog>
               </CardHeader>
               <CardContent>
-                {donationsLoading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                {childrenLoading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin" />
                   </div>
-                ) : recentDonations.length === 0 ? (
+                ) : children.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
-                    No donations yet
+                    <Baby className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>{t("admin.noChildrenYet")}</p>
+                    <p className="text-sm">{t("admin.clickAddChild")}</p>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto -mx-6 px-6">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="min-w-[120px]">Donor</TableHead>
-                          <TableHead className="min-w-[100px]">Category</TableHead>
-                          <TableHead className="min-w-[80px]">Amount</TableHead>
-                          <TableHead className="min-w-[100px]">Date</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {recentDonations.map((donation) => (
-                          <TableRow key={donation.id} data-testid={`row-donation-${donation.id}`}>
-                            <TableCell>
-                              {donation.isAnonymous ? (
-                                <span className="text-muted-foreground italic">Anonymous</span>
-                              ) : (
-                                donation.donorName || "N/A"
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="secondary">
-                                {getCategoryLabel(donation.category)}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="font-medium">${donation.amount}</TableCell>
-                            <TableCell className="text-muted-foreground">
-                              {formatDate(donation.createdAt)}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                  <div className="grid gap-3">
+                    {children.map((child) => (
+                      <div key={child.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center gap-4">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${child.isSponsored ? 'bg-green-100 dark:bg-green-900/30' : 'bg-primary/10'}`}>
+                            <Baby className={`w-5 h-5 ${child.isSponsored ? 'text-green-600' : 'text-primary'}`} />
+                          </div>
+                          <div>
+                            <p className="font-medium">{child.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {child.age} {t("admin.yearsOld")} • {child.gender === "male" ? t("admin.boy") : t("admin.girl")}
+                              {child.grade && ` • ${child.grade}`}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm font-medium">PKR {child.monthlyAmount.toLocaleString()}/mo</span>
+                          <Badge variant={child.isSponsored ? "default" : "secondary"}>
+                            {child.isSponsored ? t("admin.sponsored") : t("admin.available")}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </CardContent>
             </Card>
-          </div>
+          </TabsContent>
 
-          <div className="space-y-6">
+          {/* Events Tab */}
+          <TabsContent value="events">
             <Card>
-              <CardHeader>
-                <CardTitle>Donations by Category</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {categoryInfoList.map((category) => {
-                  const amount = donationsByCategory[category.id] || 0;
-                  const percentage = totalDonations > 0 ? (amount / totalDonations) * 100 : 0;
-                  return (
-                    <div key={category.id} data-testid={`category-stat-${category.id}`}>
-                      <div className="flex items-center justify-between gap-4 mb-1 text-sm flex-wrap">
-                        <span>{category.title}</span>
-                        <span className="text-muted-foreground">${amount.toLocaleString()}</span>
-                      </div>
-                      <Progress value={percentage} className="h-2" />
-                    </div>
-                  );
-                })}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <Dialog open={showAddStory} onOpenChange={setShowAddStory}>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>{t("admin.events")}</CardTitle>
+                  <CardDescription>{t("admin.eventsDesc")}</CardDescription>
+                </div>
+                <Dialog open={isEventDialogOpen} onOpenChange={setIsEventDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start" data-testid="button-add-story">
-                      <FileText className="w-4 h-4 mr-2" />
-                      Add Impact Story
+                    <Button>
+                      <Plus className={`w-4 h-4 ${isRTL ? "ml-2" : "mr-2"}`} />
+                      {t("admin.addEvent")}
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Add New Impact Story</DialogTitle>
-                      <DialogDescription>Share a child's journey and transformation</DialogDescription>
+                      <DialogTitle>{t("admin.createNewEvent")}</DialogTitle>
+                      <DialogDescription>{t("admin.eventWillAppear")}</DialogDescription>
                     </DialogHeader>
-                    <form 
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        const formData = new FormData(e.currentTarget);
-                        addStoryMutation.mutate({
-                          title: formData.get("title") as string,
-                          content: formData.get("content") as string,
-                          childName: formData.get("childName") as string,
-                          childAge: parseInt(formData.get("childAge") as string) || 10,
-                        });
-                      }}
-                      className="space-y-4"
-                    >
-                      <div>
-                        <Label htmlFor="title">Story Title</Label>
-                        <Input id="title" name="title" placeholder="A New Beginning for..." required data-testid="input-story-title" />
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="childName">Child's Name</Label>
-                          <Input id="childName" name="childName" placeholder="Ahmed" data-testid="input-story-child-name" />
-                        </div>
-                        <div>
-                          <Label htmlFor="childAge">Age</Label>
-                          <Input id="childAge" name="childAge" type="number" placeholder="10" data-testid="input-story-child-age" />
-                        </div>
-                      </div>
-                      <div>
-                        <Label htmlFor="content">Story Content</Label>
-                        <Textarea 
-                          id="content" 
-                          name="content" 
-                          placeholder="Tell the story of transformation..." 
-                          className="min-h-[120px]"
-                          required
-                          data-testid="textarea-story-content"
+                    <Form {...eventForm}>
+                      <form onSubmit={eventForm.handleSubmit((data) => createEventMutation.mutate(data))} className="space-y-4">
+                        <FormField
+                          control={eventForm.control}
+                          name="title"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>{t("admin.title")} *</FormLabel>
+                              <FormControl>
+                                <Input placeholder={t("admin.eventTitle")} {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
                         />
-                      </div>
-                      <Button 
-                        type="submit" 
-                        className="w-full"
-                        disabled={addStoryMutation.isPending}
-                        data-testid="button-publish-story"
-                      >
-                        {addStoryMutation.isPending ? (
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        ) : (
-                          <Plus className="w-4 h-4 mr-2" />
-                        )}
-                        Publish Story
-                      </Button>
-                    </form>
+                        <FormField
+                          control={eventForm.control}
+                          name="description"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>{t("admin.description")} *</FormLabel>
+                              <FormControl>
+                                <Textarea placeholder={t("admin.whatIsEvent")} {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={eventForm.control}
+                          name="date"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>{t("admin.dateTime")} *</FormLabel>
+                              <FormControl>
+                                <Input type="datetime-local" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={eventForm.control}
+                          name="location"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>{t("admin.location")} *</FormLabel>
+                              <FormControl>
+                                <Input placeholder={t("admin.whereIsEvent")} {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={eventForm.control}
+                          name="eventType"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>{t("admin.type")}</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="general">{t("admin.general")}</SelectItem>
+                                  <SelectItem value="fundraiser">{t("admin.fundraiser")}</SelectItem>
+                                  <SelectItem value="volunteer">{t("admin.volunteer")}</SelectItem>
+                                  <SelectItem value="religious">{t("admin.religious")}</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <Button type="submit" className="w-full" disabled={createEventMutation.isPending}>
+                          {createEventMutation.isPending && <Loader2 className={`w-4 h-4 ${isRTL ? "ml-2" : "mr-2"} animate-spin`} />}
+                          {t("admin.createEvent")}
+                        </Button>
+                      </form>
+                    </Form>
                   </DialogContent>
                 </Dialog>
-
-                <Dialog open={showAddProgram} onOpenChange={setShowAddProgram}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start" data-testid="button-add-program">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add New Program
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Add New Program</DialogTitle>
-                      <DialogDescription>Create a new care program</DialogDescription>
-                    </DialogHeader>
-                    <form 
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        const formData = new FormData(e.currentTarget);
-                        addProgramMutation.mutate({
-                          title: formData.get("title") as string,
-                          description: formData.get("description") as string,
-                          category: formData.get("category") as string,
-                        });
-                      }}
-                      className="space-y-4"
-                    >
-                      <div>
-                        <Label htmlFor="prog-title">Program Title</Label>
-                        <Input id="prog-title" name="title" placeholder="New Care Program" required data-testid="input-program-title" />
+              </CardHeader>
+              <CardContent>
+                {eventsLoading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin" />
+                  </div>
+                ) : events.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <Calendar className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>{t("admin.noEventsCreated")}</p>
+                    <p className="text-sm">{t("admin.clickAddEvent")}</p>
+                  </div>
+                ) : (
+                  <div className="grid gap-3">
+                    {events.map((event) => (
+                      <div key={event.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                            <Calendar className="w-5 h-5 text-primary" />
+                          </div>
+                          <div>
+                            <p className="font-medium">{event.title}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {formatDate(event.date)} • {event.location}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Badge variant="secondary">{event.eventType}</Badge>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                            onClick={() => deleteEventMutation.mutate(event.id)}
+                            disabled={deleteEventMutation.isPending}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
-                      <div>
-                        <Label htmlFor="prog-category">Category</Label>
-                        <Select name="category" required>
-                          <SelectTrigger data-testid="select-program-category">
-                            <SelectValue placeholder="Select category" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {categoryInfoList.map((cat) => (
-                              <SelectItem key={cat.id} value={cat.id}>
-                                {cat.title}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label htmlFor="prog-description">Description</Label>
-                        <Textarea 
-                          id="prog-description" 
-                          name="description" 
-                          placeholder="Describe the program..." 
-                          className="min-h-[100px]"
-                          required
-                          data-testid="textarea-program-description"
-                        />
-                      </div>
-                      <Button 
-                        type="submit" 
-                        className="w-full"
-                        disabled={addProgramMutation.isPending}
-                        data-testid="button-create-program"
-                      >
-                        {addProgramMutation.isPending ? (
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        ) : (
-                          <Plus className="w-4 h-4 mr-2" />
-                        )}
-                        Create Program
-                      </Button>
-                    </form>
-                  </DialogContent>
-                </Dialog>
-
-                <Button variant="outline" className="w-full justify-start" disabled>
-                  <Settings className="w-4 h-4 mr-2" />
-                  Settings
-                </Button>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
-          </div>
-        </div>
+          </TabsContent>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Published Impact Stories</CardTitle>
-            <CardDescription>Stories currently visible on the website</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {!stories || stories.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                No stories published yet
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {stories.map((story) => (
-                  <Card key={story.id} className="bg-accent/30" data-testid={`card-admin-story-${story.id}`}>
-                    <CardContent className="p-4">
-                      <h4 className="font-semibold mb-1">{story.title}</h4>
-                      {story.childName && (
-                        <Badge variant="secondary" className="mb-2">
-                          {story.childName}, {story.childAge} years
-                        </Badge>
-                      )}
-                      <p className="text-sm text-muted-foreground line-clamp-2">{story.content}</p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+          {/* Volunteers Tab */}
+          <TabsContent value="volunteers">
+            <Card>
+              <CardHeader>
+                <CardTitle>{t("admin.volunteerApplications")}</CardTitle>
+                <CardDescription>{t("admin.reviewApprove")}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {volunteersLoading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin" />
+                  </div>
+                ) : volunteers.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>{t("admin.noVolunteersYet")}</p>
+                    <p className="text-sm">{t("admin.applicationsWillAppear")}</p>
+                  </div>
+                ) : (
+                  <div className="grid gap-3">
+                    {volunteers.map((volunteer) => (
+                      <div key={volunteer.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center gap-4">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                            volunteer.status === 'approved' ? 'bg-green-100 dark:bg-green-900/30' :
+                            volunteer.status === 'rejected' ? 'bg-red-100 dark:bg-red-900/30' :
+                            'bg-amber-100 dark:bg-amber-900/30'
+                          }`}>
+                            {volunteer.status === 'approved' ? (
+                              <UserCheck className="w-5 h-5 text-green-600" />
+                            ) : volunteer.status === 'rejected' ? (
+                              <X className="w-5 h-5 text-red-600" />
+                            ) : (
+                              <Clock className="w-5 h-5 text-amber-600" />
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-medium">{volunteer.fullName}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {volunteer.email} • {volunteer.phone}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {t("admin.availableTime")}: {volunteer.availability}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {volunteer.status === "pending" ? (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                onClick={() => updateVolunteerMutation.mutate({ id: volunteer.id, status: "approved" })}
+                                disabled={updateVolunteerMutation.isPending}
+                              >
+                                <Check className={`w-4 h-4 ${isRTL ? "ml-1" : "mr-1"}`} />
+                                {t("admin.approve")}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                onClick={() => updateVolunteerMutation.mutate({ id: volunteer.id, status: "rejected" })}
+                                disabled={updateVolunteerMutation.isPending}
+                              >
+                                <X className={`w-4 h-4 ${isRTL ? "ml-1" : "mr-1"}`} />
+                                {t("admin.reject")}
+                              </Button>
+                            </>
+                          ) : (
+                            <Badge variant={volunteer.status === "approved" ? "default" : "destructive"}>
+                              {volunteer.status === "approved" ? t("admin.approved") : t("admin.rejected")}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </main>
   );

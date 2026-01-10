@@ -1,7 +1,10 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
-// Session token storage - initialize from localStorage immediately
+// Admin session token storage - initialize from localStorage immediately
 let authToken: string | null = typeof window !== 'undefined' ? localStorage.getItem('admin-token') : null;
+
+// Donor session token storage - initialize from localStorage immediately
+let donorToken: string | null = typeof window !== 'undefined' ? localStorage.getItem('donor-token') : null;
 
 export function setAuthToken(token: string | null) {
   authToken = token;
@@ -27,6 +30,31 @@ export function clearAuthToken() {
   localStorage.removeItem('admin-token');
 }
 
+// Donor token management
+export function setDonorToken(token: string | null) {
+  donorToken = token;
+  if (typeof window !== 'undefined') {
+    if (token) {
+      localStorage.setItem('donor-token', token);
+    } else {
+      localStorage.removeItem('donor-token');
+    }
+  }
+}
+
+export function getDonorToken(): string | null {
+  // Always check localStorage in case it was updated in another tab
+  if (typeof window !== 'undefined' && !donorToken) {
+    donorToken = localStorage.getItem('donor-token');
+  }
+  return donorToken;
+}
+
+export function clearDonorToken() {
+  donorToken = null;
+  localStorage.removeItem('donor-token');
+}
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
@@ -40,16 +68,44 @@ export async function apiRequest(
   data?: unknown | undefined,
 ): Promise<Response> {
   const headers: Record<string, string> = {};
-  
+
   if (data) {
     headers["Content-Type"] = "application/json";
   }
-  
+
   const token = getAuthToken();
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
   }
-  
+
+  const res = await fetch(url, {
+    method,
+    headers,
+    body: data ? JSON.stringify(data) : undefined,
+    credentials: "include",
+  });
+
+  await throwIfResNotOk(res);
+  return res;
+}
+
+// API request with donor token
+export async function donorApiRequest(
+  method: string,
+  url: string,
+  data?: unknown | undefined,
+): Promise<Response> {
+  const headers: Record<string, string> = {};
+
+  if (data) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  const token = getDonorToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
   const res = await fetch(url, {
     method,
     headers,

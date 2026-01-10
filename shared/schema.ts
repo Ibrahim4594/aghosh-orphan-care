@@ -18,6 +18,44 @@ export const insertUserSchema = createInsertSchema(users).pick({
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
+// Donors table (separate from admin users)
+export const donors = pgTable("donors", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: text("email").notNull().unique(),
+  password: text("password").notNull(),
+  fullName: text("full_name").notNull(),
+  phone: text("phone"),
+  address: text("address"),
+  city: text("city"),
+  country: text("country"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertDonorSchema = createInsertSchema(donors).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const donorLoginSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
+export const donorSignupSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  fullName: z.string().min(2, "Full name must be at least 2 characters"),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  country: z.string().optional(),
+});
+
+export type InsertDonor = z.infer<typeof insertDonorSchema>;
+export type Donor = typeof donors.$inferSelect;
+export type DonorLogin = z.infer<typeof donorLoginSchema>;
+export type DonorSignup = z.infer<typeof donorSignupSchema>;
+
 // Donation categories
 export const donationCategories = [
   "health",
@@ -32,12 +70,15 @@ export type DonationCategory = typeof donationCategories[number];
 // Donations table
 export const donations = pgTable("donations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  donorId: varchar("donor_id"), // Optional link to registered donor
   donorName: text("donor_name"),
   email: text("email"),
   amount: integer("amount").notNull(),
   category: text("category").notNull(),
   isAnonymous: boolean("is_anonymous").default(false),
   paymentMethod: text("payment_method").notNull(),
+  isRecurring: boolean("is_recurring").default(false),
+  recurringInterval: text("recurring_interval"), // 'monthly', 'quarterly', 'yearly'
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -135,3 +176,123 @@ export const categoryInfoList: CategoryInfo[] = [
     icon: "HandHeart"
   }
 ];
+
+// Contact messages table
+export const contactMessages = pgTable("contact_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  subject: text("subject").notNull(),
+  message: text("message").notNull(),
+  status: text("status").default("unread"), // 'unread', 'read', 'resolved'
+  adminNotes: text("admin_notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  readAt: timestamp("read_at"),
+  resolvedAt: timestamp("resolved_at"),
+});
+
+export const insertContactMessageSchema = createInsertSchema(contactMessages).omit({
+  id: true,
+  createdAt: true,
+  readAt: true,
+  resolvedAt: true,
+  adminNotes: true,
+  status: true,
+});
+
+export type InsertContactMessage = z.infer<typeof insertContactMessageSchema>;
+export type ContactMessage = typeof contactMessages.$inferSelect;
+
+// Events table
+export const events = pgTable("events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  date: timestamp("date").notNull(),
+  endDate: timestamp("end_date"),
+  location: text("location").notNull(),
+  imageUrl: text("image_url"),
+  eventType: text("event_type").default("general"), // 'general', 'fundraiser', 'volunteer', 'religious'
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertEventSchema = createInsertSchema(events).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertEvent = z.infer<typeof insertEventSchema>;
+export type Event = typeof events.$inferSelect;
+
+// Volunteers table
+export const volunteers = pgTable("volunteers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  fullName: text("full_name").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone").notNull(),
+  city: text("city"),
+  skills: text("skills"), // Comma-separated skills
+  availability: text("availability"), // 'weekdays', 'weekends', 'flexible'
+  message: text("message"),
+  status: text("status").default("pending"), // 'pending', 'approved', 'rejected'
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertVolunteerSchema = createInsertSchema(volunteers).omit({
+  id: true,
+  createdAt: true,
+  status: true,
+});
+
+export type InsertVolunteer = z.infer<typeof insertVolunteerSchema>;
+export type Volunteer = typeof volunteers.$inferSelect;
+
+// Children available for sponsorship
+export const children = pgTable("children", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  age: integer("age").notNull(),
+  gender: text("gender").notNull(), // 'male' or 'female'
+  grade: text("grade"),
+  story: text("story"),
+  needs: text("needs"),
+  imageUrl: text("image_url"),
+  monthlyAmount: integer("monthly_amount").default(5000), // PKR per month
+  isSponsored: boolean("is_sponsored").default(false),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertChildSchema = createInsertSchema(children).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertChild = z.infer<typeof insertChildSchema>;
+export type Child = typeof children.$inferSelect;
+
+// Sponsorship records
+export const sponsorships = pgTable("sponsorships", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  childId: varchar("child_id").notNull(),
+  donorId: varchar("donor_id"), // Optional link to registered donor
+  sponsorName: text("sponsor_name").notNull(),
+  sponsorEmail: text("sponsor_email").notNull(),
+  sponsorPhone: text("sponsor_phone"),
+  monthlyAmount: integer("monthly_amount").notNull(),
+  startDate: timestamp("start_date").defaultNow(),
+  endDate: timestamp("end_date"),
+  status: text("status").default("active"), // 'active', 'paused', 'ended'
+  paymentMethod: text("payment_method").default("bank"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertSponsorshipSchema = createInsertSchema(sponsorships).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertSponsorship = z.infer<typeof insertSponsorshipSchema>;
+export type Sponsorship = typeof sponsorships.$inferSelect;
