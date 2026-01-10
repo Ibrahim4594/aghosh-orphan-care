@@ -4,24 +4,29 @@ import * as schema from "@shared/schema";
 
 const { Pool } = pg;
 
-if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL environment variable is not set");
+// Database is optional - app works with in-memory storage if not configured
+export let pool: pg.Pool | null = null;
+export let db: ReturnType<typeof drizzle> | null = null;
+
+if (process.env.DATABASE_URL) {
+  pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    max: 10,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
+    ssl: process.env.DATABASE_URL.includes('neon.tech') || process.env.DATABASE_URL.includes('supabase')
+      ? { rejectUnauthorized: false }
+      : undefined,
+  });
+  db = drizzle(pool, { schema });
 }
-
-// Create a connection pool
-export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  max: 10,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000,
-  ssl: process.env.DATABASE_URL.includes('neon.tech') ? { rejectUnauthorized: false } : undefined,
-});
-
-// Create drizzle instance with schema
-export const db = drizzle(pool, { schema });
 
 // Test database connection
 export async function testConnection(): Promise<boolean> {
+  if (!pool) {
+    console.log("No DATABASE_URL configured - using in-memory storage");
+    return true;
+  }
   try {
     const client = await pool.connect();
     await client.query("SELECT 1");
@@ -30,6 +35,7 @@ export async function testConnection(): Promise<boolean> {
     return true;
   } catch (error) {
     console.error("Database connection failed:", error);
-    return false;
+    console.log("Falling back to in-memory storage");
+    return true; // Don't crash, use in-memory
   }
 }

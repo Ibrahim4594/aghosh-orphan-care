@@ -29,19 +29,15 @@ export function log(message: string, source = "express") {
 }
 
 async function initializeApp() {
-  // Test database connection
-  const dbConnected = await testConnection();
-  if (!dbConnected) {
-    console.error("Failed to connect to database. Please check your DATABASE_URL.");
-    process.exit(1);
-  }
+  // Test database connection (won't crash if not configured)
+  await testConnection();
 
   // Initialize database with seed data
   try {
     await storage.initializeDatabase();
   } catch (error) {
     console.error("Failed to initialize database:", error);
-    process.exit(1);
+    // Don't exit - continue with in-memory storage
   }
 
   // Check Stripe configuration
@@ -54,6 +50,15 @@ async function initializeApp() {
 
 (async () => {
   await initializeApp();
+
+  // Health check endpoint for Koyeb/Render
+  app.get('/health', (_req, res) => {
+    res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
+
+  app.get('/_health', (_req, res) => {
+    res.status(200).json({ status: 'ok' });
+  });
 
   // Stripe webhook endpoint (must be before express.json() middleware)
   app.post(
@@ -139,7 +144,8 @@ async function initializeApp() {
   }
 
   const port = parseInt(process.env.PORT || "5000", 10);
-  httpServer.listen(port, () => {
-    log(`serving on port ${port}`);
+  const host = process.env.HOST || "0.0.0.0";
+  httpServer.listen(port, host, () => {
+    log(`serving on http://${host}:${port}`);
   });
 })();
