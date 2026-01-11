@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Home, Info, Heart, Sparkles, Phone } from "lucide-react";
+import { Home, Heart, Users, HandHeart, CalendarDays } from "lucide-react";
 import { useLanguage } from "@/lib/i18n";
 
 export function MobileBottomNav() {
@@ -8,10 +8,10 @@ export function MobileBottomNav() {
 
   const navItems = [
     { href: "/", labelKey: "nav.home", icon: Home },
-    { href: "/about", labelKey: "nav.about", icon: Info },
     { href: "/donate", labelKey: "nav.donate", icon: Heart },
-    { href: "/impact", labelKey: "nav.impact", icon: Sparkles },
-    { href: "/contact", labelKey: "nav.contact", icon: Phone },
+    { href: "/volunteer", labelKey: "nav.volunteer", icon: Users },
+    { href: "/sponsorship", labelKey: "nav.sponsor", icon: HandHeart },
+    { href: "/events", labelKey: "nav.events", icon: CalendarDays },
   ];
 
   return (
