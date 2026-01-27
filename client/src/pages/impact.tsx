@@ -12,9 +12,9 @@ export default function ImpactPage() {
   const { t, isRTL } = useLanguage();
 
   const impactStats = [
-    { icon: Calendar, value: "2005", label: "impact.servingSince", color: "from-emerald-500 to-green-500" },
-    { icon: Users, value: "4.2M", label: "impact.orphansInPakistan", color: "from-blue-500 to-cyan-500" },
-    { icon: Target, value: "6:1", label: "impact.caregiverRatio", color: "from-purple-500 to-pink-500" },
+    { icon: Calendar, value: "2017", label: "impact.servingSince", color: "from-emerald-500 to-green-500" },
+    { icon: Users, value: "50+", label: "impact.childrenInCare", color: "from-blue-500 to-cyan-500" },
+    { icon: Target, value: "Rs.30K", label: "impact.monthlyPerChild", color: "from-purple-500 to-pink-500" },
   ];
 
   const programHighlights = [

@@ -20,6 +20,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/lib/i18n";
 import { LanguageToggle } from "@/components/language-toggle";
+import { setAuthToken } from "@/lib/queryClient";
 
 const donorLoginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -44,19 +45,6 @@ interface LoginResponse {
   };
 }
 
-// Store admin token
-export const setAdminToken = (token: string) => {
-  localStorage.setItem("admin_token", token);
-};
-
-export const getAdminToken = () => {
-  return localStorage.getItem("admin_token");
-};
-
-export const clearAdminToken = () => {
-  localStorage.removeItem("admin_token");
-};
-
 export default function DonorLoginPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -66,6 +54,9 @@ export default function DonorLoginPage() {
 
   // Redirect if already authenticated
   useEffect(() => {
+    // Clean up old token format (admin_token with underscore)
+    localStorage.removeItem("admin_token");
+
     if (isAuthenticated) {
       setLocation("/");
     }
@@ -131,7 +122,7 @@ export default function DonorLoginPage() {
       return response.json();
     },
     onSuccess: (data) => {
-      setAdminToken(data.token);
+      setAuthToken(data.token);
       toast({
         title: t("admin.loginSuccess"),
         description: t("admin.welcomeBack"),

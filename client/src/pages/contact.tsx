@@ -64,19 +64,19 @@ export default function ContactPage() {
     {
       icon: MapPin,
       title: "contact.address",
-      content: ["Aghosh Orphan Care Home", "Near Jamia-al-Minhaj", "Shah Jillani Road, Township", "Lahore, Pakistan"],
+      content: ["Aghosh Orphan Care Home", "Gulshan-e-Iqbal", "Karachi, Pakistan"],
       color: "from-blue-500 to-cyan-500"
     },
     {
       icon: Phone,
       title: "contact.phone",
-      content: ["+92 42 35169111", "+92 42 35168504"],
+      content: ["+92 21 34836947"],
       color: "from-emerald-500 to-green-500"
     },
     {
       icon: Mail,
       title: "contact.email",
-      content: ["info@welfare.org.pk", "info@minhaj.org"],
+      content: ["aghosh.karachi@minhaj.org"],
       color: "from-purple-500 to-pink-500"
     },
     {
@@ -313,8 +313,8 @@ export default function ContactPage() {
                             <MapPin className="w-5 h-5" />
                           </div>
                           <div className="text-sm">
-                            <p className="font-medium">Lahore, Pakistan</p>
-                            <p className="opacity-75">Township Area</p>
+                            <p className="font-medium">Karachi, Pakistan</p>
+                            <p className="opacity-75">Gulshan-e-Iqbal</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-3">

@@ -1,21 +1,46 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Heart, Users, BookOpen, Home, Shield, Globe, Utensils, GraduationCap, Laptop, Bed, Info, Sparkles } from "lucide-react";
+import { Heart, Users, BookOpen, Home, Shield, Globe, Utensils, GraduationCap, Laptop, Bed, Info, Sparkles, Camera } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/lib/i18n";
 import { ScrollReveal, StaggerContainer, StaggerItem, HoverLift } from "@/lib/animations";
 import aghoshLogo from "@assets/Aghosh-Karachi-Minhaj-Welfare-Foundation-Pakistan_05_1767633857577.jpg";
+import { useState } from "react";
+
+// Import gallery images
+import img1 from "@assets/1.jpeg";
+import img2 from "@assets/2.jpeg";
+import img3 from "@assets/3.jpeg";
+import img4 from "@assets/4.jpeg";
+import img5 from "@assets/5.jpeg";
+import img6 from "@assets/6.jpeg";
+import img7 from "@assets/7.jpeg";
+import img8 from "@assets/8.jpeg";
+import img9 from "@assets/9.jpeg";
+import img10 from "@assets/10.jpeg";
+import img11 from "@assets/11.jpeg";
+import img12 from "@assets/12.jpeg";
+import img13 from "@assets/13.jpeg";
+import img14 from "@assets/14.jpeg";
+import img15 from "@assets/15.jpeg";
+import img16 from "@assets/16.jpeg";
+
+const galleryImages = [
+  img1, img2, img3, img4, img5, img6, img7, img8,
+  img9, img10, img11, img12, img13, img14, img15, img16
+];
 
 export default function AboutPage() {
   const { t, isRTL } = useLanguage();
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const milestones = [
-    { year: "2008", titleKey: "about.milestone1Title", descKey: "about.milestone1Desc" },
-    { year: "2008", titleKey: "about.milestone2Title", descKey: "about.milestone2Desc" },
-    { year: "2010", titleKey: "about.milestone3Title", descKey: "about.milestone3Desc" },
-    { year: "2015", titleKey: "about.milestone4Title", descKey: "about.milestone4Desc" },
-    { year: "2020", titleKey: "about.milestone5Title", descKey: "about.milestone5Desc" },
-    { year: "2024", titleKey: "about.milestone6Title", descKey: "about.milestone6Desc" },
+    { year: "2017", titleKey: "about.milestone1Title", descKey: "about.milestone1Desc" },
+    { year: "2017", titleKey: "about.milestone2Title", descKey: "about.milestone2Desc" },
+    { year: "2018", titleKey: "about.milestone3Title", descKey: "about.milestone3Desc" },
+    { year: "2019", titleKey: "about.milestone4Title", descKey: "about.milestone4Desc" },
+    { year: "2024", titleKey: "about.milestone5Title", descKey: "about.milestone5Desc" },
+    { year: "2025", titleKey: "about.milestone6Title", descKey: "about.milestone6Desc" },
   ];
 
   const facilities = [
@@ -205,6 +230,65 @@ export default function AboutPage() {
         </div>
       </section>
 
+      {/* Photo Gallery Section */}
+      <section className="py-16 md:py-20 bg-accent/30">
+        <div className={`max-w-7xl mx-auto px-4 ${isRTL ? "direction-rtl" : ""}`}>
+          <ScrollReveal>
+            <div className="text-center mb-12">
+              <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full mb-4">
+                <Camera className="w-4 h-4" />
+                <span className="text-sm font-medium">Photo Gallery</span>
+              </div>
+              <h2 className="text-3xl font-bold mb-4">Life at Aghosh</h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                Glimpses of our children's daily life, activities, and the love that surrounds them at Aghosh Orphan Care Home Karachi.
+              </p>
+            </div>
+          </ScrollReveal>
+
+          <StaggerContainer className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {galleryImages.map((img, index) => (
+              <StaggerItem key={index}>
+                <HoverLift>
+                  <div
+                    className="relative aspect-square overflow-hidden rounded-xl shadow-lg cursor-pointer group"
+                    onClick={() => setSelectedImage(img)}
+                  >
+                    <img
+                      src={img}
+                      alt={`Aghosh Gallery ${index + 1}`}
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300" />
+                  </div>
+                </HoverLift>
+              </StaggerItem>
+            ))}
+          </StaggerContainer>
+        </div>
+      </section>
+
+      {/* Image Modal */}
+      {selectedImage && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setSelectedImage(null)}
+        >
+          <button
+            className="absolute top-4 right-4 text-white text-4xl hover:text-gray-300 transition-colors"
+            onClick={() => setSelectedImage(null)}
+          >
+            ×
+          </button>
+          <img
+            src={selectedImage}
+            alt="Gallery Preview"
+            className="max-w-full max-h-[90vh] object-contain rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+
       {/* Food & Recreation */}
       <section className="py-8">
         <div className={`max-w-7xl mx-auto px-4 ${isRTL ? "direction-rtl" : ""}`}>
@@ -291,7 +375,10 @@ export default function AboutPage() {
             <Users className="w-16 h-16 mx-auto mb-6 opacity-90" />
             <h2 className="text-3xl md:text-4xl font-bold mb-4">{t("about.sponsorChild")}</h2>
             <p className="text-lg opacity-90 mb-2">
-              <span className="text-2xl font-bold">Rs. 6,500</span> {t("about.sponsorChildDesc")}
+              <span className="text-2xl font-bold">Rs. 30,000</span> {t("about.sponsorChildDesc")}
+            </p>
+            <p className="text-sm opacity-80 mb-4">
+              Or two people can jointly sponsor a child at Rs. 15,000 each
             </p>
             <div className={`text-sm opacity-80 mb-8 max-w-xl mx-auto space-y-2 ${isRTL ? "text-right" : "text-left"}`}>
               <p className="font-medium">{t("about.whatYouGet")}</p>

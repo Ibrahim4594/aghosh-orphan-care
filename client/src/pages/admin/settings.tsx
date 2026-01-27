@@ -15,9 +15,9 @@ export default function AdminSettingsPage() {
   const { t, isRTL } = useLanguage();
   const [settings, setSettings] = useState({
     siteName: "Aghosh Orphan Care Home",
-    contactEmail: "info@welfare.org.pk",
-    contactPhone: "+92 42 35169111",
-    address: "Shah Jillani Road, Township, Lahore",
+    contactEmail: "aghosh.karachi@minhaj.org",
+    contactPhone: "+92 21 34836947",
+    address: "Gulshan-e-Iqbal, Karachi",
     enableDonations: true,
     maintenanceMode: false,
   });

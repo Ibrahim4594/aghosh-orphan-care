@@ -53,7 +53,8 @@ export function StatisticsBar({ statistics = defaultStats }: StatisticsBarProps)
   };
 
   return (
-    <section className="py-16 md:py-20 bg-primary text-primary-foreground">
+    <section className="py-16 md:py-20 bg-primary text-primary-foreground relative overflow-hidden">
+      <div className="vista-shine absolute inset-0 pointer-events-none opacity-30" />
       <div className="max-w-7xl mx-auto px-4">
         <StaggerContainer staggerDelay={0.15} className={`grid grid-cols-2 lg:grid-cols-4 gap-8 ${isRTL ? "direction-rtl" : ""}`}>
           {stats.map((stat, index) => {

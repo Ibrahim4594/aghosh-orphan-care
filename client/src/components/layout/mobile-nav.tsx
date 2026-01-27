@@ -1,17 +1,20 @@
 import { Link, useLocation } from "wouter";
-import { Home, Heart, Users, HandHeart, CalendarDays } from "lucide-react";
+import { Home, Heart, Sparkles, HandHeart, Info, Settings } from "lucide-react";
 import { useLanguage } from "@/lib/i18n";
+import { useAuth } from "@/lib/auth-context";
 
 export function MobileBottomNav() {
   const [location] = useLocation();
   const { t, isRTL } = useLanguage();
+  const { isAuthenticated } = useAuth();
 
   const navItems = [
     { href: "/", labelKey: "nav.home", icon: Home },
     { href: "/donate", labelKey: "nav.donate", icon: Heart },
-    { href: "/volunteer", labelKey: "nav.volunteer", icon: Users },
+    { href: "/impact", labelKey: "nav.impact", icon: Sparkles },
     { href: "/sponsorship", labelKey: "nav.sponsor", icon: HandHeart },
-    { href: "/events", labelKey: "nav.events", icon: CalendarDays },
+    { href: "/about", labelKey: "nav.about", icon: Info },
+    { href: isAuthenticated ? "/donor/settings" : "/donor/login", labelKey: "nav.settings", icon: Settings },
   ];
 
   return (
@@ -34,10 +37,10 @@ export function MobileBottomNav() {
                 }`}
                 data-testid={`mobile-nav-${item.labelKey.split('.')[1]}`}
               >
-                <div className={`${isDonate ? "bg-primary text-primary-foreground rounded-full p-2 -mt-4 shadow-lg" : ""}`}>
-                  <Icon className="w-5 h-5" />
+                <div className={`${isDonate ? "bg-primary text-primary-foreground rounded-full p-1.5 -mt-3 shadow-lg" : ""}`}>
+                  <Icon className="w-4 h-4" />
                 </div>
-                <span className={`text-[10px] mt-1 ${isDonate ? "font-medium" : ""}`}>{t(item.labelKey)}</span>
+                <span className={`text-[9px] mt-0.5 ${isDonate ? "font-medium" : ""}`}>{t(item.labelKey)}</span>
               </button>
             </Link>
           );

@@ -26,6 +26,14 @@ import {
   DollarSign,
   TrendingUp,
   Pencil,
+  Settings,
+  ExternalLink,
+  FileText,
+  Receipt,
+  MapPin,
+  CheckCircle,
+  XCircle,
+  HelpCircle,
 } from "lucide-react";
 import { donorApiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth-context";
@@ -57,6 +65,43 @@ interface Donation {
   createdAt: string;
 }
 
+interface Sponsorship {
+  id: string;
+  childId: string;
+  sponsorName: string;
+  sponsorEmail: string;
+  monthlyAmount: number;
+  startDate: string;
+  status: string;
+  paymentMethod: string;
+  paymentStatus: string;
+  localReceiptNumber: string | null;
+  createdAt: string;
+}
+
+interface Event {
+  id: string;
+  title: string;
+  description: string | null;
+  date: string;
+  location: string | null;
+  imageUrl: string | null;
+  eventType: string;
+  createdAt: string;
+}
+
+interface EventDonation {
+  id: string;
+  eventId: string;
+  donorName: string;
+  amount: number;
+  paymentMethod: string;
+  paymentStatus: string;
+  attendanceStatus: string;
+  localReceiptNumber: string | null;
+  createdAt: string;
+}
+
 export default function DonorDashboardPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -71,7 +116,7 @@ export default function DonorDashboardPage() {
     }
   }, [authLoading, isAuthenticated, setLocation]);
 
-  // Fetch donor's donations
+  // Fetch donor's donations with optimized settings
   const { data: donations, isLoading: donationsLoading } = useQuery<Donation[]>({
     queryKey: ["/api/donor/donations"],
     queryFn: async () => {
@@ -79,6 +124,42 @@ export default function DonorDashboardPage() {
       return response.json();
     },
     enabled: isAuthenticated,
+    staleTime: 2 * 60 * 1000, // Consider fresh for 2 minutes
+    cacheTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+  });
+
+  // Fetch donor's sponsorships with optimized settings
+  const { data: sponsorships, isLoading: sponsorshipsLoading } = useQuery<Sponsorship[]>({
+    queryKey: ["/api/donor/sponsorships"],
+    queryFn: async () => {
+      const response = await donorApiRequest("GET", "/api/donor/sponsorships");
+      return response.json();
+    },
+    enabled: isAuthenticated,
+    staleTime: 2 * 60 * 1000, // Consider fresh for 2 minutes
+    cacheTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+  });
+
+  // Fetch all events
+  const { data: events } = useQuery<Event[]>({
+    queryKey: ["/api/events"],
+    queryFn: async () => {
+      const response = await fetch("/api/events");
+      return response.json();
+    },
+    enabled: isAuthenticated,
+  });
+
+  // Fetch donor's event donations
+  const { data: eventDonations, isLoading: eventDonationsLoading } = useQuery<EventDonation[]>({
+    queryKey: ["/api/donor/event-donations"],
+    queryFn: async () => {
+      const response = await donorApiRequest("GET", "/api/donor/event-donations");
+      return response.json();
+    },
+    enabled: isAuthenticated,
+    staleTime: 2 * 60 * 1000,
+    cacheTime: 10 * 60 * 1000,
   });
 
   // Logout mutation
@@ -189,6 +270,18 @@ export default function DonorDashboardPage() {
   const totalDonations = donations?.reduce((sum, d) => sum + d.amount, 0) || 0;
   const donationCount = donations?.length || 0;
 
+  const totalSponsorships = sponsorships?.filter(s => s.status === 'active').length || 0;
+  const totalSponsorshipAmount = sponsorships
+    ?.filter(s => s.status === 'active')
+    .reduce((sum, s) => sum + s.monthlyAmount, 0) || 0;
+
+  const totalEventDonations = eventDonations?.reduce((sum, ed) => sum + ed.amount, 0) || 0;
+  const eventDonationCount = eventDonations?.length || 0;
+
+  const totalContributed = totalDonations + totalSponsorshipAmount + totalEventDonations;
+  const totalEvents = events?.length || 0;
+  const upcomingEvents = events?.filter(e => new Date(e.date) > new Date()).slice(0, 3) || [];
+
   const getCategoryLabel = (category: string) => {
     const labels: Record<string, string> = {
       health: t("categories.healthcare"),
@@ -214,34 +307,50 @@ export default function DonorDashboardPage() {
   return (
     <main className="min-h-screen bg-background">
       {/* Hero Header */}
-      <section className="bg-gradient-to-br from-primary/10 via-secondary/5 to-background py-8 md:py-12">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-3 py-1 rounded-full mb-3 text-sm">
+      <section className="relative bg-gradient-to-br from-primary/10 via-secondary/5 to-background py-12 md:py-16 overflow-hidden border-b">
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+            <div className="flex-1">
+              <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full mb-4 text-sm font-medium">
                 <User className="w-4 h-4" />
                 {t("donor.dashboard")}
               </div>
-              <h1 className="text-3xl font-bold">{t("donor.welcomeBack").replace("{name}", donor.fullName)}</h1>
-              <p className="text-muted-foreground mt-1">
-                {t("donor.profileDescription")}
+              <h1 className="text-4xl md:text-5xl font-bold mb-2">
+                {t("donor.welcomeBack").replace("{name}", donor.fullName.split(' ')[0])}{" "}
+                <span className="text-primary">{donor.fullName.split(' ').slice(1).join(' ')}</span>
+              </h1>
+              <p className="text-lg text-muted-foreground">
+                Thank you for making a difference in children's lives
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 md:gap-3 flex-wrap justify-end">
+              <Link href="/sponsorship">
+                <Button size="lg" className="shadow-lg">
+                  <Heart className="w-5 h-5 mr-2" />
+                  <span className="hidden sm:inline">Sponsor a Child</span>
+                </Button>
+              </Link>
               <Link href="/donate">
-                <Button size="lg" className="shadow-lg shadow-primary/25">
-                  <HandHeart className="w-5 h-5 mr-2" />
-                  {t("nav.donate")}
+                <Button size="lg" variant="outline" className="shadow-md border-2">
+                  <HandHeart className="w-5 h-5 md:mr-2" />
+                  <span className="hidden sm:inline">{t("nav.donate")}</span>
+                </Button>
+              </Link>
+              <Link href="/donor/settings">
+                <Button variant="outline" size="lg" className="border-2">
+                  <Settings className="w-5 h-5 md:mr-2" />
+                  <span className="hidden md:inline">{t("donor.settings") || "Settings"}</span>
                 </Button>
               </Link>
               <Button
                 variant="outline"
                 size="lg"
+                className="border-2"
                 onClick={() => logoutMutation.mutate()}
                 disabled={logoutMutation.isPending}
               >
-                <LogOut className="w-5 h-5 mr-2" />
-                {t("donor.logout")}
+                <LogOut className="w-5 h-5 md:mr-2" />
+                <span className="hidden md:inline">{t("donor.logout")}</span>
               </Button>
             </div>
           </div>
@@ -250,55 +359,72 @@ export default function DonorDashboardPage() {
 
       <div className="container mx-auto px-4 py-8">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="border-none shadow-lg">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card className="border-2 shadow-xl hover:shadow-2xl transition-all hover:-translate-y-1 bg-card">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {t("donor.totalDonated")}
+              <CardTitle className="text-sm font-semibold text-muted-foreground">
+                Total Contributed
               </CardTitle>
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-green-500 flex items-center justify-center shadow-lg">
-                <DollarSign className="w-5 h-5 text-white" />
+              <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg">
+                <DollarSign className="w-6 h-6 text-primary-foreground" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">PKR {totalDonations.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {t("donor.lifetimeContribution")}
+              <div className="text-4xl font-bold text-foreground">PKR {totalContributed.toLocaleString()}</div>
+              <p className="text-sm text-muted-foreground mt-2 font-medium">
+                Lifetime Donations + Sponsorships
               </p>
             </CardContent>
           </Card>
 
-          <Card className="border-none shadow-lg">
+          <Card className="border-2 shadow-xl hover:shadow-2xl transition-all hover:-translate-y-1 bg-card">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {t("donor.totalDonations")}
+              <CardTitle className="text-sm font-semibold text-muted-foreground">
+                Active Sponsorships
               </CardTitle>
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg">
-                <TrendingUp className="w-5 h-5 text-white" />
+              <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg">
+                <Heart className="w-6 h-6 text-primary-foreground fill-primary-foreground" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{donationCount}</div>
-              <p className="text-xs text-muted-foreground mt-1">
+              <div className="text-4xl font-bold text-foreground">{totalSponsorships}</div>
+              <p className="text-sm text-muted-foreground mt-2 font-medium">
+                PKR {totalSponsorshipAmount.toLocaleString()}/month recurring
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-2 shadow-xl hover:shadow-2xl transition-all hover:-translate-y-1 bg-card">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-semibold text-muted-foreground">
+                One-Time Donations
+              </CardTitle>
+              <div className="w-12 h-12 rounded-2xl bg-secondary flex items-center justify-center shadow-lg">
+                <TrendingUp className="w-6 h-6 text-secondary-foreground" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-4xl font-bold text-foreground">{donationCount}</div>
+              <p className="text-sm text-muted-foreground mt-2 font-medium">
                 {t("donor.donationsMade")}
               </p>
             </CardContent>
           </Card>
 
-          <Card className="border-none shadow-lg">
+          <Card className="border-2 shadow-xl hover:shadow-2xl transition-all hover:-translate-y-1 bg-card">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+              <CardTitle className="text-sm font-semibold text-muted-foreground">
                 {t("donor.memberSince")}
               </CardTitle>
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg">
-                <Calendar className="w-5 h-5 text-white" />
+              <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center shadow-lg">
+                <Calendar className="w-6 h-6 text-muted-foreground" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">
+              <div className="text-4xl font-bold text-foreground">
                 {donor.createdAt ? format(new Date(donor.createdAt), "MMM yyyy") : "N/A"}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-sm text-muted-foreground mt-2 font-medium">
                 {t("donor.joinedDate")}
               </p>
             </CardContent>
@@ -470,6 +596,313 @@ export default function DonorDashboardPage() {
                       {t("donor.makeFirstDonation")}
                     </Button>
                   </Link>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Sponsorships Section */}
+        <div className="mt-8">
+          <Card className="border-2 shadow-2xl">
+            <CardHeader className="bg-accent border-b-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-3 text-2xl">
+                    <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
+                      <Heart className="w-5 h-5 text-primary-foreground fill-primary-foreground" />
+                    </div>
+                    My Sponsorships
+                  </CardTitle>
+                  <CardDescription className="mt-2 text-base">
+                    Children you are currently sponsoring - View receipts and track your impact
+                  </CardDescription>
+                </div>
+                <Badge className="bg-secondary text-secondary-foreground text-lg px-4 py-2">
+                  {totalSponsorships} Active
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {sponsorshipsLoading ? (
+                <TableSkeleton rows={3} columns={5} />
+              ) : sponsorships && sponsorships.length > 0 ? (
+                <div className="rounded-md border overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/50">
+                        <TableHead className="font-semibold">Child</TableHead>
+                        <TableHead className="font-semibold">Monthly Amount</TableHead>
+                        <TableHead className="font-semibold">Start Date</TableHead>
+                        <TableHead className="font-semibold">Status</TableHead>
+                        <TableHead className="font-semibold">Receipts</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {sponsorships.map((sponsorship) => (
+                        <TableRow key={sponsorship.id} className="hover:bg-muted/30">
+                          <TableCell className="font-medium">{sponsorship.sponsorName}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <DollarSign className="w-4 h-4 text-primary" />
+                              <span className="font-semibold">PKR {sponsorship.monthlyAmount.toLocaleString()}</span>
+                              <span className="text-xs text-muted-foreground">/month</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Calendar className="w-4 h-4 text-muted-foreground" />
+                              {format(new Date(sponsorship.startDate), "MMM dd, yyyy")}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={sponsorship.status === 'active' ? 'default' : 'secondary'}
+                              className={sponsorship.status === 'active' ? 'bg-secondary' : ''}
+                            >
+                              {sponsorship.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {sponsorship.localReceiptNumber ? (
+                              <div className="flex flex-col gap-2">
+                                <Link href={`/receipt/${sponsorship.childId}`}>
+                                  <Button variant="outline" size="sm" className="w-full justify-start">
+                                    <FileText className="w-4 h-4 mr-2" />
+                                    Local Receipt
+                                  </Button>
+                                </Link>
+                                {sponsorship.stripeReceiptUrl ? (
+                                  <a
+                                    href={sponsorship.stripeReceiptUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="w-full"
+                                  >
+                                    <Button variant="default" size="sm" className="w-full justify-start">
+                                      <Receipt className="w-4 h-4 mr-2" />
+                                      Stripe Receipt
+                                      <ExternalLink className="w-3 h-3 ml-auto" />
+                                    </Button>
+                                  </a>
+                                ) : (
+                                  <Button variant="ghost" size="sm" disabled className="w-full justify-start opacity-50">
+                                    <Receipt className="w-4 h-4 mr-2" />
+                                    Stripe Receipt Unavailable
+                                  </Button>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">Pending</span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Heart className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="font-medium mb-2">No Active Sponsorships</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Start sponsoring a child today and make a lasting impact on their life.
+                  </p>
+                  <Link href="/sponsorship">
+                    <Button>
+                      <Heart className="w-4 h-4 mr-2" />
+                      Browse Children
+                    </Button>
+                  </Link>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Events Section */}
+        <div className="mt-8">
+          <Card className="border-2 shadow-2xl">
+            <CardHeader className="bg-accent border-b-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-3 text-2xl">
+                    <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center">
+                      <Calendar className="w-5 h-5 text-secondary-foreground" />
+                    </div>
+                    Upcoming Events
+                  </CardTitle>
+                  <CardDescription className="mt-2 text-base">
+                    Support our events and make a difference in the community
+                  </CardDescription>
+                </div>
+                <Badge className="bg-primary text-primary-foreground text-lg px-4 py-2">
+                  {eventDonationCount} Donations
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="p-6">
+              {upcomingEvents.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {upcomingEvents.map((event) => {
+                    const eventTypeColors: Record<string, string> = {
+                      general: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+                      fundraiser: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+                      volunteer: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
+                      religious: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200",
+                    };
+
+                    const alreadyDonated = eventDonations?.some(ed => ed.eventId === event.id);
+
+                    return (
+                      <Card key={event.id} className="overflow-hidden hover:shadow-xl transition-shadow">
+                        {event.imageUrl && (
+                          <div className="h-48 overflow-hidden bg-muted">
+                            <img
+                              src={event.imageUrl}
+                              alt={event.title}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        )}
+                        <CardHeader>
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge className={eventTypeColors[event.eventType] || eventTypeColors.general}>
+                              {event.eventType}
+                            </Badge>
+                            {alreadyDonated && (
+                              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">
+                                ✓ Donated
+                              </Badge>
+                            )}
+                          </div>
+                          <CardTitle className="text-lg">{event.title}</CardTitle>
+                          <CardDescription className="line-clamp-2">
+                            {event.description || "Join us for this special event"}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Calendar className="w-4 h-4" />
+                            {format(new Date(event.date), "MMM dd, yyyy · h:mm a")}
+                          </div>
+                          {event.location && (
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <MapPin className="w-4 h-4" />
+                              {event.location}
+                            </div>
+                          )}
+                          <Link href={`/donate?eventId=${event.id}`}>
+                            <Button className="w-full mt-4" variant={alreadyDonated ? "outline" : "default"}>
+                              <DollarSign className="w-4 h-4 mr-2" />
+                              {alreadyDonated ? "Donate Again" : "Donate to Event"}
+                            </Button>
+                          </Link>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Calendar className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="font-medium mb-2">No Upcoming Events</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Check back soon for new events and opportunities to make a difference.
+                  </p>
+                </div>
+              )}
+
+              {/* Event Donations History */}
+              {eventDonationCount > 0 && (
+                <div className="mt-8 pt-8 border-t">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <History className="w-5 h-5" />
+                    Your Event Donations
+                  </h3>
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/50">
+                          <TableHead className="font-semibold">Event</TableHead>
+                          <TableHead className="font-semibold">Amount</TableHead>
+                          <TableHead className="font-semibold">Date</TableHead>
+                          <TableHead className="font-semibold">Attendance</TableHead>
+                          <TableHead className="font-semibold">Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {eventDonations?.map((donation) => {
+                          const event = events?.find(e => e.id === donation.eventId);
+                          const getAttendanceConfig = (status: string) => {
+                            switch (status) {
+                              case "attending":
+                                return {
+                                  icon: <CheckCircle className="w-4 h-4" />,
+                                  label: "Attending",
+                                  className: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                                };
+                              case "not_attending":
+                                return {
+                                  icon: <XCircle className="w-4 h-4" />,
+                                  label: "Not Attending",
+                                  className: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                                };
+                              case "maybe":
+                                return {
+                                  icon: <HelpCircle className="w-4 h-4" />,
+                                  label: "Maybe",
+                                  className: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
+                                };
+                              default:
+                                return {
+                                  icon: <CheckCircle className="w-4 h-4" />,
+                                  label: "Attending",
+                                  className: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                                };
+                            }
+                          };
+                          const attendance = getAttendanceConfig(donation.attendanceStatus);
+
+                          return (
+                            <TableRow key={donation.id} className="hover:bg-muted/30">
+                              <TableCell className="font-medium">
+                                {event?.title || "Event"}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <DollarSign className="w-4 h-4 text-primary" />
+                                  <span className="font-semibold">PKR {donation.amount.toLocaleString()}</span>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <Calendar className="w-4 h-4 text-muted-foreground" />
+                                  {format(new Date(donation.createdAt), "MMM dd, yyyy")}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="secondary" className={attendance.className}>
+                                  <span className="flex items-center gap-1">
+                                    {attendance.icon}
+                                    {attendance.label}
+                                  </span>
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <Badge
+                                  variant={donation.paymentStatus === 'completed' ? 'default' : 'secondary'}
+                                  className={donation.paymentStatus === 'completed' ? 'bg-green-600' : ''}
+                                >
+                                  {donation.paymentStatus}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
               )}
             </CardContent>

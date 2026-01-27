@@ -4,7 +4,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -48,7 +50,14 @@ import {
   Building2,
   Copy,
   RefreshCw,
-  Calendar
+  Calendar,
+  Receipt,
+  Printer,
+  Hash,
+  User,
+  Mail,
+  CheckCircle2,
+  ExternalLink
 } from "lucide-react";
 import { useLanguage } from "@/lib/i18n";
 import { type DonationCategory } from "@shared/schema";
@@ -56,6 +65,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import { format } from "date-fns";
 
 const iconMap: Record<string, typeof Heart> = {
   Heart,
@@ -127,7 +137,7 @@ function DonateForm() {
   };
 
   const categories = [
-    { id: "healthcare", icon: "Heart", titleKey: "categories.healthcare" },
+    { id: "health", icon: "Heart", titleKey: "categories.healthcare" },
     { id: "education", icon: "GraduationCap", titleKey: "categories.education" },
     { id: "food", icon: "Utensils", titleKey: "categories.food" },
     { id: "clothing", icon: "Shirt", titleKey: "categories.clothing" },
@@ -301,6 +311,232 @@ function DonateForm() {
     return Math.round(amount * rate);
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleDownloadReceipt = () => {
+    if (!donationResult) return;
+
+    const receiptDate = donationResult.date ? new Date(donationResult.date) : new Date();
+    const receiptText = `
+AGHOSH ORPHAN CARE HOME
+DONATION RECEIPT
+================================
+
+Receipt Number: ${donationResult.receiptNumber || 'N/A'}
+Transaction ID: ${donationResult.transactionId || 'N/A'}
+Date: ${format(receiptDate, "MMMM dd, yyyy 'at' hh:mm a")}
+
+DONOR INFORMATION
+-----------------
+Name: ${donationResult.donorName || 'Anonymous'}
+Email: ${donationResult.donorEmail || 'Not provided'}
+
+DONATION DETAILS
+----------------
+Amount: ${donationResult.currency} ${donationResult.amount}
+PKR Equivalent: PKR ${donationResult.pkrEquivalent?.toLocaleString()}
+Category: ${donationResult.category || 'General'}
+Donation Type: ${donationResult.donationType || 'Sadaqah'}
+Payment Method: ${donationResult.paymentMethod || 'Credit/Debit Card'}
+
+================================
+Thank you for your generous donation!
+Your contribution helps orphaned children
+receive education, healthcare, and a loving home.
+
+Minhaj Welfare Foundation
+www.minhajwelfare.org
+================================
+    `;
+
+    const blob = new Blob([receiptText], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Donation_Receipt_${donationResult.receiptNumber || 'receipt'}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const resetForm = () => {
+    setShowSuccess(false);
+    setDonationResult(null);
+    form.reset();
+    setCustomAmount("");
+  };
+
+  // If showing success receipt, render the receipt view
+  if (showSuccess && donationResult) {
+    const receiptDate = donationResult.date ? new Date(donationResult.date) : new Date();
+
+    return (
+      <main className="py-12 md:py-20">
+        <div className="max-w-3xl mx-auto px-4">
+          {/* Success Message */}
+          <Card className="border-none shadow-xl bg-gradient-to-br from-emerald-500/10 to-green-500/10 border-emerald-500/20 mb-6">
+            <CardContent className="p-6 text-center">
+              <CheckCircle2 className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-emerald-700 dark:text-emerald-400 mb-2">
+                {t("donate.thankYou")}
+              </h2>
+              <p className="text-muted-foreground">
+                {t("donate.donationReceived")}
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Receipt Card */}
+          <Card className="border-none shadow-xl print:shadow-none mb-6" id="receipt">
+            <CardHeader className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground rounded-t-lg print:bg-primary">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-2xl">Aghosh Orphan Care Home</CardTitle>
+                  <CardDescription className="text-primary-foreground/80">
+                    Minhaj Welfare Foundation
+                  </CardDescription>
+                </div>
+                <Receipt className="w-12 h-12 opacity-50" />
+              </div>
+            </CardHeader>
+            <CardContent className="p-6 space-y-6">
+              <div className="text-center border-b pb-4">
+                <h3 className="text-xl font-bold">DONATION RECEIPT</h3>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="space-y-1">
+                  <p className="text-muted-foreground flex items-center gap-2">
+                    <Hash className="w-4 h-4" /> Receipt Number
+                  </p>
+                  <p className="font-mono font-bold">{donationResult.receiptNumber}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-muted-foreground flex items-center gap-2">
+                    <Calendar className="w-4 h-4" /> Date
+                  </p>
+                  <p className="font-medium">{format(receiptDate, "MMM dd, yyyy")}</p>
+                </div>
+              </div>
+
+              <Separator />
+
+              <div>
+                <h4 className="font-semibold mb-3 text-primary">Donor Information</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm bg-muted/50 p-4 rounded-lg">
+                  <div>
+                    <p className="text-muted-foreground">Name</p>
+                    <p className="font-medium">{donationResult.donorName}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Email</p>
+                    <p className="font-medium">{donationResult.donorEmail || 'Not provided'}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="font-semibold mb-3 text-primary">Donation Details</h4>
+                <div className="bg-muted/50 p-4 rounded-lg space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Amount</span>
+                    <span className="text-2xl font-bold text-primary">
+                      {donationResult.currency} {donationResult.amount?.toLocaleString()}
+                    </span>
+                  </div>
+                  {donationResult.currency !== 'PKR' && (
+                    <>
+                      <Separator />
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">PKR Equivalent</span>
+                        <span className="font-bold">
+                          PKR {donationResult.pkrEquivalent?.toLocaleString()}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                  <Separator />
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Category</p>
+                      <p className="font-medium">{donationResult.category ? t(`categories.${donationResult.category}`) : 'General'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Donation Type</p>
+                      <p className="font-medium capitalize">{donationResult.donationType || 'Sadaqah'}</p>
+                    </div>
+                  </div>
+                  <Separator />
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Payment Method</p>
+                      <p className="font-medium">{donationResult.paymentMethod}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Transaction ID</p>
+                      <p className="font-mono text-xs">{donationResult.transactionId}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-primary/5 p-4 rounded-lg text-center text-sm">
+                <p className="text-muted-foreground">
+                  Thank you for your generous donation! Your contribution helps orphaned children
+                  receive education, healthcare, and a loving home.
+                </p>
+                <p className="font-medium mt-2 text-primary">
+                  May Allah bless you abundantly!
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row gap-3 print:hidden">
+            <Button onClick={handlePrint} variant="outline" className="flex-1">
+              <Printer className="w-4 h-4 mr-2" />
+              Print Receipt
+            </Button>
+            <Button onClick={handleDownloadReceipt} variant="outline" className="flex-1">
+              <Download className="w-4 h-4 mr-2" />
+              Download Receipt
+            </Button>
+            <Button onClick={resetForm} className="flex-1">
+              <Heart className="w-4 h-4 mr-2" />
+              Make Another Donation
+            </Button>
+          </div>
+
+          {/* Stripe Receipt Button */}
+          {donationResult.stripeReceiptUrl && (
+            <div className="text-center mt-4 print:hidden">
+              <Button
+                variant="outline"
+                className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                onClick={() => window.open(donationResult.stripeReceiptUrl, '_blank')}
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                View Stripe Receipt
+              </Button>
+            </div>
+          )}
+
+          <div className="text-center mt-6 print:hidden">
+            <Link href="/">
+              <Button variant="ghost">
+                {t("donate.backToHome")}
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="py-12 md:py-20">
       <div className="max-w-3xl mx-auto px-4">
@@ -315,6 +551,12 @@ function DonateForm() {
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             {t("donate.subtitle")}
           </p>
+          <Link href="/donate-test">
+            <span className="inline-flex items-center gap-1.5 mt-4 text-sm text-amber-600 hover:text-amber-700 cursor-pointer transition-colors">
+              <Receipt className="w-4 h-4" />
+              Receipt Testing Mode
+            </span>
+          </Link>
         </div>
 
         <Card>
@@ -875,55 +1117,6 @@ function DonateForm() {
             </Form>
           </CardContent>
         </Card>
-
-        <Dialog open={showSuccess} onOpenChange={setShowSuccess}>
-          <DialogContent className={`text-center sm:max-w-md ${isRTL ? "direction-rtl" : ""}`}>
-            <DialogHeader>
-              <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                <CheckCircle className="w-10 h-10 text-primary" />
-              </div>
-              <DialogTitle className="text-2xl">{t("donate.thankYou")}</DialogTitle>
-              <DialogDescription className="text-base">
-                {t("donate.donationReceived")}
-              </DialogDescription>
-            </DialogHeader>
-            {donationResult && (
-              <div className={`mt-4 p-4 bg-accent/50 rounded-md ${isRTL ? "text-right" : "text-left"}`}>
-                <p className="text-sm font-medium mb-2">{t("donate.donationDetails")}</p>
-                <div className="text-sm text-muted-foreground space-y-1">
-                  <p>{t("donate.purpose")}: {donationResult.category && t(`categories.${donationResult.category}`)}</p>
-                  <p>{t("donate.amount")}: {donationResult.currency} {donationResult.amount}</p>
-                  <p>{t("donate.pkrEquivalent")}: PKR {donationResult.pkrEquivalent?.toLocaleString()}</p>
-                  <p>{t("donate.donor")}: {donationResult.donorName}</p>
-                </div>
-              </div>
-            )}
-            <div className="flex flex-col gap-2 mt-4">
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  toast({
-                    title: t("donate.downloadReceipt"),
-                    description: t("donate.donationReceived"),
-                  });
-                }}
-                data-testid="button-download-receipt"
-              >
-                <Download className={`w-4 h-4 ${isRTL ? "ml-2" : "mr-2"}`} />
-                {t("donate.downloadReceipt")}
-              </Button>
-              <Button 
-                onClick={() => {
-                  setShowSuccess(false);
-                  setLocation("/");
-                }}
-                data-testid="button-back-home"
-              >
-                {t("donate.backToHome")}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
     </main>
   );
@@ -1010,7 +1203,7 @@ function DonateFormBankOnly() {
   };
 
   const categories = [
-    { id: "healthcare", icon: "Heart", titleKey: "categories.healthcare" },
+    { id: "health", icon: "Heart", titleKey: "categories.healthcare" },
     { id: "education", icon: "GraduationCap", titleKey: "categories.education" },
     { id: "food", icon: "Utensils", titleKey: "categories.food" },
     { id: "clothing", icon: "Shirt", titleKey: "categories.clothing" },
@@ -1091,6 +1284,12 @@ function DonateFormBankOnly() {
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             {t("donate.subtitle")}
           </p>
+          <Link href="/donate-test">
+            <span className="inline-flex items-center gap-1.5 mt-4 text-sm text-amber-600 hover:text-amber-700 cursor-pointer transition-colors">
+              <Receipt className="w-4 h-4" />
+              Receipt Testing Mode
+            </span>
+          </Link>
         </div>
 
         <Card>

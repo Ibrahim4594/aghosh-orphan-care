@@ -56,6 +56,8 @@ import { apiRequest, queryClient, clearAuthToken } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/lib/i18n";
 import { LanguageToggle } from "@/components/language-toggle";
+import { ImprovedChildForm } from "@/components/admin/ImprovedChildForm";
+import { ImprovedEventForm } from "@/components/admin/ImprovedEventForm";
 
 // Schemas
 const childSchema = z.object({
@@ -65,6 +67,7 @@ const childSchema = z.object({
   grade: z.string().optional(),
   story: z.string().optional(),
   needs: z.string().optional(),
+  imageUrl: z.string().optional().or(z.literal("")),
   monthlyAmount: z.coerce.number().min(1000).default(5000),
 });
 
@@ -73,6 +76,7 @@ const eventSchema = z.object({
   description: z.string().min(10, "Description is required"),
   date: z.string().min(1, "Date is required"),
   location: z.string().min(2, "Location is required"),
+  imageUrl: z.string().optional().or(z.literal("")),
   eventType: z.enum(["general", "fundraiser", "volunteer", "religious"]).default("general"),
 });
 
@@ -134,12 +138,48 @@ export default function AdminDashboardPage() {
   const [isChildDialogOpen, setIsChildDialogOpen] = useState(false);
   const [isEventDialogOpen, setIsEventDialogOpen] = useState(false);
 
+  // Verify session on mount
+  const { data: sessionData } = useQuery({
+    queryKey: ["/api/admin/session"],
+    queryFn: async () => {
+      try {
+        const res = await apiRequest("GET", "/api/admin/session", undefined);
+        const data = await res.json();
+
+        // If not authenticated, clear token and redirect
+        if (!data.authenticated) {
+          clearAuthToken();
+          setLocation("/donor/login");
+          throw new Error("Session expired");
+        }
+
+        return data;
+      } catch (error: any) {
+        // Session invalid - clear token and redirect to login
+        clearAuthToken();
+        setLocation("/donor/login");
+        throw error;
+      }
+    },
+    retry: false,
+  });
+
   // Queries
   const { data: volunteers = [], isLoading: volunteersLoading } = useQuery<Volunteer[]>({
     queryKey: ["/api/admin/volunteers"],
     queryFn: async () => {
-      const res = await apiRequest("GET", "/api/admin/volunteers", undefined);
-      return res.json();
+      try {
+        const res = await apiRequest("GET", "/api/admin/volunteers", undefined);
+        return res.json();
+      } catch (error: any) {
+        // If 401, session expired - clear token and redirect to login
+        if (error.message?.includes("401")) {
+          clearAuthToken();
+          setLocation("/donor/login");
+          throw error;
+        }
+        throw error;
+      }
     },
   });
 
@@ -161,6 +201,7 @@ export default function AdminDashboardPage() {
       grade: "",
       story: "",
       needs: "",
+      imageUrl: "",
       monthlyAmount: 5000,
     },
   });
@@ -172,6 +213,7 @@ export default function AdminDashboardPage() {
       description: "",
       date: "",
       location: "",
+      imageUrl: "",
       eventType: "general",
     },
   });
@@ -183,7 +225,6 @@ export default function AdminDashboardPage() {
     },
     onSuccess: () => {
       clearAuthToken();
-      localStorage.removeItem("admin_token");
       toast({ title: t("admin.logout") });
       setLocation("/donor/login");
     },
@@ -198,6 +239,25 @@ export default function AdminDashboardPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/volunteers"] });
       toast({ title: t("admin.volunteerUpdated") });
     },
+    onError: (error: Error) => {
+      // If 401, session expired - clear token and redirect to login
+      if (error.message?.includes("401")) {
+        clearAuthToken();
+        toast({
+          title: "Session Expired",
+          description: "Please login again.",
+          variant: "destructive",
+        });
+        setLocation("/donor/login");
+        return;
+      }
+
+      toast({
+        title: "Error",
+        description: "Failed to update volunteer.",
+        variant: "destructive",
+      });
+    },
   });
 
   const createChildMutation = useMutation({
@@ -210,6 +270,27 @@ export default function AdminDashboardPage() {
       setIsChildDialogOpen(false);
       childForm.reset();
       toast({ title: t("admin.childCreated") });
+    },
+    onError: (error: Error) => {
+      console.error("Child creation error:", error);
+
+      // If 401, session expired - clear token and redirect to login
+      if (error.message?.includes("401")) {
+        clearAuthToken();
+        toast({
+          title: "Session Expired",
+          description: "Please login again.",
+          variant: "destructive",
+        });
+        setLocation("/donor/login");
+        return;
+      }
+
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create child. Please try again.",
+        variant: "destructive",
+      });
     },
   });
 
@@ -228,6 +309,27 @@ export default function AdminDashboardPage() {
       eventForm.reset();
       toast({ title: t("admin.eventCreated") });
     },
+    onError: (error: Error) => {
+      console.error("Event creation error:", error);
+
+      // If 401, session expired - clear token and redirect to login
+      if (error.message?.includes("401")) {
+        clearAuthToken();
+        toast({
+          title: "Session Expired",
+          description: "Please login again.",
+          variant: "destructive",
+        });
+        setLocation("/donor/login");
+        return;
+      }
+
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create event. Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
   const deleteEventMutation = useMutation({
@@ -238,6 +340,25 @@ export default function AdminDashboardPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/events"] });
       toast({ title: t("admin.eventDeleted") });
+    },
+    onError: (error: Error) => {
+      // If 401, session expired - clear token and redirect to login
+      if (error.message?.includes("401")) {
+        clearAuthToken();
+        toast({
+          title: "Session Expired",
+          description: "Please login again.",
+          variant: "destructive",
+        });
+        setLocation("/donor/login");
+        return;
+      }
+
+      toast({
+        title: "Error",
+        description: "Failed to delete event.",
+        variant: "destructive",
+      });
     },
   });
 
@@ -511,93 +632,17 @@ export default function AdminDashboardPage() {
                       {t("admin.addChild")}
                     </Button>
                   </DialogTrigger>
-                  <DialogContent>
+                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
-                      <DialogTitle>{t("admin.addNewChild")}</DialogTitle>
+                      <DialogTitle className="text-2xl font-bold">{t("admin.addNewChild")}</DialogTitle>
                       <DialogDescription>{t("admin.childWillAppear")}</DialogDescription>
                     </DialogHeader>
                     <Form {...childForm}>
-                      <form onSubmit={childForm.handleSubmit((data) => createChildMutation.mutate(data))} className="space-y-4">
-                        <FormField
-                          control={childForm.control}
-                          name="name"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>{t("admin.name")} *</FormLabel>
-                              <FormControl>
-                                <Input placeholder={t("admin.childsName")} {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <div className="grid grid-cols-2 gap-4">
-                          <FormField
-                            control={childForm.control}
-                            name="age"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>{t("admin.age")} *</FormLabel>
-                                <FormControl>
-                                  <Input type="number" min="1" max="18" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={childForm.control}
-                            name="gender"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>{t("admin.gender")} *</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                  <FormControl>
-                                    <SelectTrigger>
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    <SelectItem value="male">{t("admin.boy")}</SelectItem>
-                                    <SelectItem value="female">{t("admin.girl")}</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                        <FormField
-                          control={childForm.control}
-                          name="grade"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>{t("admin.gradeClass")}</FormLabel>
-                              <FormControl>
-                                <Input placeholder="e.g., Class 5" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={childForm.control}
-                          name="monthlyAmount"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>{t("admin.monthlyAmount")} *</FormLabel>
-                              <FormControl>
-                                <Input type="number" min="1000" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <Button type="submit" className="w-full" disabled={createChildMutation.isPending}>
-                          {createChildMutation.isPending && <Loader2 className={`w-4 h-4 ${isRTL ? "ml-2" : "mr-2"} animate-spin`} />}
-                          {t("admin.addChild")}
-                        </Button>
-                      </form>
+                      <ImprovedChildForm
+                        form={childForm}
+                        onSubmit={(data) => createChildMutation.mutate(data)}
+                        isSubmitting={createChildMutation.isPending}
+                      />
                     </Form>
                   </DialogContent>
                 </Dialog>
@@ -658,93 +703,17 @@ export default function AdminDashboardPage() {
                       {t("admin.addEvent")}
                     </Button>
                   </DialogTrigger>
-                  <DialogContent>
+                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
-                      <DialogTitle>{t("admin.createNewEvent")}</DialogTitle>
+                      <DialogTitle className="text-2xl font-bold">{t("admin.createNewEvent")}</DialogTitle>
                       <DialogDescription>{t("admin.eventWillAppear")}</DialogDescription>
                     </DialogHeader>
                     <Form {...eventForm}>
-                      <form onSubmit={eventForm.handleSubmit((data) => createEventMutation.mutate(data))} className="space-y-4">
-                        <FormField
-                          control={eventForm.control}
-                          name="title"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>{t("admin.title")} *</FormLabel>
-                              <FormControl>
-                                <Input placeholder={t("admin.eventTitle")} {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={eventForm.control}
-                          name="description"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>{t("admin.description")} *</FormLabel>
-                              <FormControl>
-                                <Textarea placeholder={t("admin.whatIsEvent")} {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={eventForm.control}
-                          name="date"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>{t("admin.dateTime")} *</FormLabel>
-                              <FormControl>
-                                <Input type="datetime-local" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={eventForm.control}
-                          name="location"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>{t("admin.location")} *</FormLabel>
-                              <FormControl>
-                                <Input placeholder={t("admin.whereIsEvent")} {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={eventForm.control}
-                          name="eventType"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>{t("admin.type")}</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="general">{t("admin.general")}</SelectItem>
-                                  <SelectItem value="fundraiser">{t("admin.fundraiser")}</SelectItem>
-                                  <SelectItem value="volunteer">{t("admin.volunteer")}</SelectItem>
-                                  <SelectItem value="religious">{t("admin.religious")}</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <Button type="submit" className="w-full" disabled={createEventMutation.isPending}>
-                          {createEventMutation.isPending && <Loader2 className={`w-4 h-4 ${isRTL ? "ml-2" : "mr-2"} animate-spin`} />}
-                          {t("admin.createEvent")}
-                        </Button>
-                      </form>
+                      <ImprovedEventForm
+                        form={eventForm}
+                        onSubmit={(data) => createEventMutation.mutate(data)}
+                        isSubmitting={createEventMutation.isPending}
+                      />
                     </Form>
                   </DialogContent>
                 </Dialog>

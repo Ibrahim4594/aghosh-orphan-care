@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { Menu, X, Heart, User, LogIn } from "lucide-react";
+import { Menu, X, Heart, User, LogIn, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
@@ -138,6 +138,12 @@ export function Header() {
                   <Button size="sm" className="w-full" onClick={() => setIsMenuOpen(false)}>
                     <Heart className={`w-4 h-4 ${isRTL ? "ml-2" : "mr-2"}`} />
                     {t("nav.donateNow")}
+                  </Button>
+                </Link>
+                <Link href="/donate-test">
+                  <Button variant="outline" size="sm" className="w-full" onClick={() => setIsMenuOpen(false)}>
+                    <Receipt className={`w-4 h-4 ${isRTL ? "ml-2" : "mr-2"}`} />
+                    Receipt Testing
                   </Button>
                 </Link>
               </div>

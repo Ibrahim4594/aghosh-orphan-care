@@ -14,12 +14,16 @@ import {
   type InsertContactMessage,
   type Event,
   type InsertEvent,
+  type EventDonation,
+  type InsertEventDonation,
   type Volunteer,
   type InsertVolunteer,
   type Child,
   type InsertChild,
   type Sponsorship,
   type InsertSponsorship,
+  type NewsletterSubscriber,
+  type InsertNewsletterSubscriber,
   users,
   donors,
   donations,
@@ -27,7 +31,9 @@ import {
   impactStories,
   contactMessages,
   events,
+  eventDonations,
   volunteers,
+  newsletterSubscribers,
   children,
   sponsorships,
 } from "@shared/schema";
@@ -93,6 +99,13 @@ export interface IStorage {
   updateEvent(id: string, event: Partial<InsertEvent>): Promise<Event | undefined>;
   deleteEvent(id: string): Promise<boolean>;
 
+  // Event Donations
+  createEventDonation(eventDonation: InsertEventDonation): Promise<EventDonation>;
+  getEventDonation(id: string): Promise<EventDonation | undefined>;
+  updateEventDonation(id: string, data: Partial<EventDonation>): Promise<EventDonation | undefined>;
+  getDonorEventDonations(donorId: string): Promise<EventDonation[]>;
+  getEventDonationsByEvent(eventId: string): Promise<EventDonation[]>;
+
   // Volunteers
   getVolunteers(): Promise<Volunteer[]>;
   getVolunteer(id: string): Promise<Volunteer | undefined>;
@@ -113,6 +126,12 @@ export interface IStorage {
   createSponsorship(sponsorship: InsertSponsorship): Promise<Sponsorship>;
   updateSponsorship(id: string, sponsorship: Partial<Sponsorship>): Promise<Sponsorship | undefined>;
 
+  // Newsletter Subscribers
+  getNewsletterSubscriber(email: string): Promise<NewsletterSubscriber | undefined>;
+  createNewsletterSubscriber(subscriber: InsertNewsletterSubscriber): Promise<NewsletterSubscriber>;
+  updateNewsletterSubscriberSyncStatus(id: string, mailerliteId: string | null, synced: boolean, error?: string | null): Promise<NewsletterSubscriber | undefined>;
+  getUnsyncedSubscribers(): Promise<NewsletterSubscriber[]>;
+
   // Database initialization
   initializeDatabase(): Promise<void>;
 }
@@ -126,6 +145,7 @@ class MemoryStorage implements IStorage {
   private impactStories: Map<string, ImpactStory> = new Map();
   private contactMessages: Map<string, ContactMessage> = new Map();
   private events: Map<string, Event> = new Map();
+  private eventDonations: Map<string, EventDonation> = new Map();
   private volunteers: Map<string, Volunteer> = new Map();
   private children: Map<string, Child> = new Map();
   private sponsorships: Map<string, Sponsorship> = new Map();
@@ -367,6 +387,42 @@ class MemoryStorage implements IStorage {
     return this.events.delete(id);
   }
 
+  // Event Donation methods
+  async createEventDonation(eventDonation: InsertEventDonation): Promise<EventDonation> {
+    const newEventDonation: EventDonation = {
+      id: randomUUID(),
+      ...eventDonation,
+      createdAt: new Date().toISOString(),
+    };
+    this.eventDonations.set(newEventDonation.id, newEventDonation);
+    return newEventDonation;
+  }
+
+  async getEventDonation(id: string): Promise<EventDonation | undefined> {
+    return this.eventDonations.get(id);
+  }
+
+  async updateEventDonation(id: string, data: Partial<EventDonation>): Promise<EventDonation | undefined> {
+    const existing = this.eventDonations.get(id);
+    if (!existing) return undefined;
+
+    const updated = { ...existing, ...data };
+    this.eventDonations.set(id, updated);
+    return updated;
+  }
+
+  async getDonorEventDonations(donorId: string): Promise<EventDonation[]> {
+    return Array.from(this.eventDonations.values())
+      .filter(ed => ed.donorId === donorId)
+      .sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+  }
+
+  async getEventDonationsByEvent(eventId: string): Promise<EventDonation[]> {
+    return Array.from(this.eventDonations.values())
+      .filter(ed => ed.eventId === eventId)
+      .sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+  }
+
   // Volunteer methods
   async getVolunteers(): Promise<Volunteer[]> {
     return Array.from(this.volunteers.values())
@@ -478,6 +534,48 @@ class MemoryStorage implements IStorage {
     const updated = { ...existing, ...sponsorship };
     this.sponsorships.set(id, updated);
     return updated;
+  }
+
+  // Newsletter Subscribers
+  private newsletterSubscribers: Map<string, NewsletterSubscriber> = new Map();
+
+  async getNewsletterSubscriber(email: string): Promise<NewsletterSubscriber | undefined> {
+    return Array.from(this.newsletterSubscribers.values()).find(sub => sub.email === email);
+  }
+
+  async createNewsletterSubscriber(subscriber: InsertNewsletterSubscriber): Promise<NewsletterSubscriber> {
+    const newSubscriber: NewsletterSubscriber = {
+      id: randomUUID(),
+      ...subscriber,
+      createdAt: new Date(),
+    };
+    this.newsletterSubscribers.set(newSubscriber.id, newSubscriber);
+    return newSubscriber;
+  }
+
+  async updateNewsletterSubscriberSyncStatus(
+    id: string,
+    mailerliteId: string | null,
+    synced: boolean,
+    error?: string | null
+  ): Promise<NewsletterSubscriber | undefined> {
+    const subscriber = this.newsletterSubscribers.get(id);
+    if (!subscriber) return undefined;
+
+    const updated: NewsletterSubscriber = {
+      ...subscriber,
+      mailerliteId,
+      mailerliteSynced: synced,
+      mailerliteSyncedAt: synced ? new Date() : null,
+      mailerliteError: error || null,
+    };
+    this.newsletterSubscribers.set(id, updated);
+    return updated;
+  }
+
+  async getUnsyncedSubscribers(): Promise<NewsletterSubscriber[]> {
+    return Array.from(this.newsletterSubscribers.values())
+      .filter(sub => !sub.mailerliteSynced);
   }
 
   // Initialize - create admin user
@@ -729,6 +827,42 @@ class DatabaseStorage implements IStorage {
     return result.length > 0;
   }
 
+  // Event Donation methods
+  async createEventDonation(eventDonation: InsertEventDonation): Promise<EventDonation> {
+    if (!db) throw new Error("Database not available");
+    const result = await db.insert(eventDonations).values(eventDonation).returning();
+    return result[0];
+  }
+
+  async getEventDonation(id: string): Promise<EventDonation | undefined> {
+    if (!db) throw new Error("Database not available");
+    const result = await db.select().from(eventDonations).where(eq(eventDonations.id, id)).limit(1);
+    return result[0];
+  }
+
+  async updateEventDonation(id: string, data: Partial<EventDonation>): Promise<EventDonation | undefined> {
+    if (!db) throw new Error("Database not available");
+    const result = await db.update(eventDonations)
+      .set(data)
+      .where(eq(eventDonations.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async getDonorEventDonations(donorId: string): Promise<EventDonation[]> {
+    if (!db) throw new Error("Database not available");
+    return db.select().from(eventDonations)
+      .where(eq(eventDonations.donorId, donorId))
+      .orderBy(desc(eventDonations.createdAt));
+  }
+
+  async getEventDonationsByEvent(eventId: string): Promise<EventDonation[]> {
+    if (!db) throw new Error("Database not available");
+    return db.select().from(eventDonations)
+      .where(eq(eventDonations.eventId, eventId))
+      .orderBy(desc(eventDonations.createdAt));
+  }
+
   // Volunteer methods
   async getVolunteers(): Promise<Volunteer[]> {
     if (!db) throw new Error("Database not available");
@@ -826,6 +960,45 @@ class DatabaseStorage implements IStorage {
       .where(eq(sponsorships.id, id))
       .returning();
     return result[0];
+  }
+
+  // Newsletter Subscribers
+  async getNewsletterSubscriber(email: string): Promise<NewsletterSubscriber | undefined> {
+    if (!db) throw new Error("Database not available");
+    const result = await db.select().from(newsletterSubscribers).where(eq(newsletterSubscribers.email, email)).limit(1);
+    return result[0];
+  }
+
+  async createNewsletterSubscriber(subscriber: InsertNewsletterSubscriber): Promise<NewsletterSubscriber> {
+    if (!db) throw new Error("Database not available");
+    const result = await db.insert(newsletterSubscribers).values(subscriber).returning();
+    return result[0];
+  }
+
+  async updateNewsletterSubscriberSyncStatus(
+    id: string,
+    mailerliteId: string | null,
+    synced: boolean,
+    error?: string | null
+  ): Promise<NewsletterSubscriber | undefined> {
+    if (!db) throw new Error("Database not available");
+    const result = await db.update(newsletterSubscribers)
+      .set({
+        mailerliteId,
+        mailerliteSynced: synced,
+        mailerliteSyncedAt: synced ? new Date() : null,
+        mailerliteError: error || null,
+      })
+      .where(eq(newsletterSubscribers.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async getUnsyncedSubscribers(): Promise<NewsletterSubscriber[]> {
+    if (!db) throw new Error("Database not available");
+    return db.select()
+      .from(newsletterSubscribers)
+      .where(eq(newsletterSubscribers.mailerliteSynced, false));
   }
 
   // Initialize database - only create admin user

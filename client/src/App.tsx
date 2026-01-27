@@ -22,10 +22,16 @@ import AdminSettingsPage from "@/pages/admin/settings";
 import DonorLoginPage from "@/pages/donor/login";
 import DonorSignupPage from "@/pages/donor/signup";
 import DonorDashboardPage from "@/pages/donor/dashboard";
+import DonorSettingsPage from "@/pages/donor/settings";
 import WelcomePage from "@/pages/welcome";
 import EventsPage from "@/pages/events";
+import EventDonatePage from "@/pages/event-donate";
+import EventReceiptPage from "@/pages/event-receipt";
 import VolunteerPage from "@/pages/volunteer";
 import SponsorshipPage from "@/pages/sponsorship";
+import SponsorFormPage from "@/pages/sponsor-form";
+import ReceiptPage from "@/pages/receipt";
+import DonateTestPage from "@/pages/donate-test";
 import NotFound from "@/pages/not-found";
 
 // Auth guard - requires login for all pages except public/auth pages
@@ -144,6 +150,20 @@ function Router() {
             </PageTransition>
           </PublicLayout>
         </Route>
+        <Route path="/event-donate/:eventId">
+          <PublicLayout>
+            <PageTransition>
+              <EventDonatePage />
+            </PageTransition>
+          </PublicLayout>
+        </Route>
+        <Route path="/event-receipt/:eventDonationId">
+          <PublicLayout>
+            <PageTransition>
+              <EventReceiptPage />
+            </PageTransition>
+          </PublicLayout>
+        </Route>
         <Route path="/volunteer">
           <PublicLayout>
             <PageTransition>
@@ -155,6 +175,20 @@ function Router() {
           <PublicLayout>
             <PageTransition>
               <SponsorshipPage />
+            </PageTransition>
+          </PublicLayout>
+        </Route>
+        <Route path="/sponsor/:childId">
+          <PublicLayout>
+            <PageTransition>
+              <SponsorFormPage />
+            </PageTransition>
+          </PublicLayout>
+        </Route>
+        <Route path="/receipt/:sponsorshipId">
+          <PublicLayout>
+            <PageTransition>
+              <ReceiptPage />
             </PageTransition>
           </PublicLayout>
         </Route>
@@ -206,6 +240,20 @@ function Router() {
           <PublicLayout>
             <PageTransition>
               <DonorDashboardPage />
+            </PageTransition>
+          </PublicLayout>
+        </Route>
+        <Route path="/donor/settings">
+          <PublicLayout>
+            <PageTransition>
+              <DonorSettingsPage />
+            </PageTransition>
+          </PublicLayout>
+        </Route>
+        <Route path="/donate-test">
+          <PublicLayout>
+            <PageTransition>
+              <DonateTestPage />
             </PageTransition>
           </PublicLayout>
         </Route>

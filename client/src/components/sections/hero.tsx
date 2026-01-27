@@ -10,7 +10,8 @@ export function HeroSection() {
   const ArrowIcon = isRTL ? ArrowLeft : ArrowRight;
 
   return (
-    <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden">
+    <section className="vista-hero relative min-h-[80vh] flex items-center justify-center overflow-hidden">
+      <div className="vista-shine absolute inset-0 pointer-events-none" />
       <div
         className="absolute inset-0 bg-gradient-to-br from-primary/15 via-secondary/10 to-background"
         style={{
@@ -81,9 +82,9 @@ export function HeroSection() {
 
         <StaggerContainer staggerDelay={0.1} className={`mt-12 md:mt-16 grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 max-w-3xl mx-auto ${isRTL ? "direction-rtl" : ""}`}>
           {[
-            { number: "500+", labelKey: "hero.orphansSupported" },
-            { number: "34", labelKey: "hero.residentialBlocks" },
-            { number: "Rs.6,500", labelKey: "hero.monthlySponsorship" },
+            { number: "50+", labelKey: "hero.orphansSupported" },
+            { number: "9", labelKey: "hero.residentialBlocks" },
+            { number: "Rs.30,000", labelKey: "hero.monthlySponsorship" },
             { number: "100%", labelKey: "hero.transparency" },
           ].map((stat, index) => (
             <StaggerItem key={index}>

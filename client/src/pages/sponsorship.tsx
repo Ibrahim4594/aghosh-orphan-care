@@ -45,7 +45,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { ScrollReveal, StaggerContainer, StaggerItem, FadeIn, HoverLift, SuccessCheckmark } from "@/lib/animations";
 import { CardSkeleton } from "@/components/ui/skeletons";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useLanguage } from "@/lib/i18n";
 
 interface Child {
@@ -74,6 +74,7 @@ const sponsorshipSchema = z.object({
 type SponsorshipFormData = z.infer<typeof sponsorshipSchema>;
 
 export default function SponsorshipPage() {
+  const [, setLocation] = useLocation();
   const { t, isRTL } = useLanguage();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -136,9 +137,7 @@ export default function SponsorshipPage() {
   });
 
   const handleSponsorClick = (child: Child) => {
-    setSelectedChild(child);
-    form.setValue("childId", child.id);
-    setIsDialogOpen(true);
+    setLocation(`/sponsor/${child.id}`);
   };
 
   const onSubmit = (data: SponsorshipFormData) => {
@@ -153,10 +152,17 @@ export default function SponsorshipPage() {
     });
   };
 
+  const handleSponsoredChildClick = (child: Child) => {
+    // Navigate to receipt page
+    setLocation(`/receipt/${child.id}`);
+  };
+
   const availableChildren = children?.filter(c => !c.isSponsored) || [];
   const sponsoredChildren = children?.filter(c => c.isSponsored) || [];
 
   if (isSuccess) {
+    const paymentMethod = sponsorshipResult?.sponsorship?.paymentMethod;
+
     return (
       <main className="min-h-screen bg-background">
         <div className={`max-w-2xl mx-auto px-4 py-20 ${isRTL ? "direction-rtl" : ""}`}>
@@ -170,38 +176,73 @@ export default function SponsorshipPage() {
               <div className="p-4 bg-primary/5 rounded-lg mb-6">
                 <p className="text-sm text-muted-foreground">{t("sponsor.monthlyCommitment")}:</p>
                 <p className="text-2xl font-bold text-primary">
-                  PKR {(sponsorshipResult?.sponsorship?.monthlyAmount || 5000).toLocaleString()}/{t("sponsor.month")}
+                  PKR {(sponsorshipResult?.sponsorship?.monthlyAmount || 30000).toLocaleString()}/{t("sponsor.month")}
                 </p>
               </div>
-              <div className={`p-4 bg-accent/50 rounded-md border mb-6 ${isRTL ? "text-right" : "text-left"}`}>
-                <h4 className={`font-semibold mb-3 flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
-                  <Building2 className="w-4 h-4" />
-                  {t("sponsor.bankDetails")}
-                </h4>
-                <div className="space-y-2 text-sm">
-                  <div className={`flex justify-between items-center ${isRTL ? "flex-row-reverse" : ""}`}>
-                    <span className="text-muted-foreground">{t("sponsor.bank")}:</span>
-                    <div className={`flex items-center gap-1 ${isRTL ? "flex-row-reverse" : ""}`}>
-                      <span className="font-medium">Meezan Bank Limited</span>
-                      <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard("Meezan Bank Limited")}>
-                        <Copy className="w-3 h-3" />
-                      </Button>
+
+              {/* Bank Transfer Details - Only show for bank transfers */}
+              {paymentMethod === "bank" && (
+                <div className={`p-4 bg-accent/50 rounded-md border mb-6 ${isRTL ? "text-right" : "text-left"}`}>
+                  <h4 className={`font-semibold mb-3 flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+                    <Building2 className="w-4 h-4" />
+                    Bank Transfer Details
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    <div className={`flex justify-between items-center ${isRTL ? "flex-row-reverse" : ""}`}>
+                      <span className="text-muted-foreground">Bank Name:</span>
+                      <div className={`flex items-center gap-1 ${isRTL ? "flex-row-reverse" : ""}`}>
+                        <span className="font-medium">Meezan Bank</span>
+                        <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard("Meezan Bank")}>
+                          <Copy className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div className={`flex justify-between items-center ${isRTL ? "flex-row-reverse" : ""}`}>
+                      <span className="text-muted-foreground">Account Title:</span>
+                      <div className={`flex items-center gap-1 ${isRTL ? "flex-row-reverse" : ""}`}>
+                        <span className="font-medium">Aghosh Orphan Care Home</span>
+                        <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard("Aghosh Orphan Care Home")}>
+                          <Copy className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div className={`flex justify-between items-center ${isRTL ? "flex-row-reverse" : ""}`}>
+                      <span className="text-muted-foreground">Account Number:</span>
+                      <div className={`flex items-center gap-1 ${isRTL ? "flex-row-reverse" : ""}`}>
+                        <span className="font-medium font-mono">01234567890123</span>
+                        <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard("01234567890123")}>
+                          <Copy className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div className={`flex justify-between items-center ${isRTL ? "flex-row-reverse" : ""}`}>
+                      <span className="text-muted-foreground">IBAN:</span>
+                      <div className={`flex items-center gap-1 ${isRTL ? "flex-row-reverse" : ""}`}>
+                        <span className="font-medium font-mono text-xs">PK36MEZN0001234567890123</span>
+                        <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard("PK36MEZN0001234567890123")}>
+                          <Copy className="w-3 h-3" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                  <div className={`flex justify-between items-center ${isRTL ? "flex-row-reverse" : ""}`}>
-                    <span className="text-muted-foreground">{t("sponsor.account")}:</span>
-                    <div className={`flex items-center gap-1 ${isRTL ? "flex-row-reverse" : ""}`}>
-                      <span className="font-medium font-mono">0101-0105-3297-51</span>
-                      <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard("0101-0105-3297-51")}>
-                        <Copy className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  </div>
+                  <p className="text-xs text-muted-foreground mt-3 pt-3 border-t">
+                    📝 Please transfer PKR {(sponsorshipResult?.sponsorship?.monthlyAmount || 5000).toLocaleString()} monthly and save your receipt. We'll contact you via email for confirmation and updates.
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground mt-3">
-                  {t("sponsor.transferNote")}
-                </p>
-              </div>
+              )}
+
+              {/* Card Payment Confirmation */}
+              {paymentMethod === "card" && (
+                <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-md border border-green-200 dark:border-green-800 mb-6">
+                  <CheckCircle2 className="w-12 h-12 mx-auto text-green-600 dark:text-green-400 mb-3" />
+                  <p className="text-sm text-green-800 dark:text-green-300 font-medium mb-2">
+                    Payment Successful!
+                  </p>
+                  <p className="text-xs text-green-700 dark:text-green-400">
+                    Your monthly sponsorship has been set up successfully. You'll receive a receipt via email, and we'll send updates about the child's progress.
+                  </p>
+                </div>
+              )}
               <div className={`flex gap-4 justify-center ${isRTL ? "flex-row-reverse" : ""}`}>
                 <Link href="/">
                   <Button>{t("sponsor.returnHome")}</Button>
@@ -297,10 +338,18 @@ export default function SponsorshipPage() {
                 <StaggerItem key={child.id}>
                   <HoverLift>
                     <Card className="h-full elevated-card overflow-hidden">
-                      <div className="h-48 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-                        <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center">
-                          <User className="w-12 h-12 text-primary" />
-                        </div>
+                      <div className="h-48 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center overflow-hidden">
+                        {child.imageUrl ? (
+                          <img
+                            src={child.imageUrl}
+                            alt={child.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center">
+                            <User className="w-12 h-12 text-primary" />
+                          </div>
+                        )}
                       </div>
                       <CardHeader className={isRTL ? "text-right" : ""}>
                         <div className={`flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
@@ -342,7 +391,7 @@ export default function SponsorshipPage() {
                         <div className="w-full text-center">
                           <p className="text-sm text-muted-foreground">{t("sponsor.monthlySponsorship")}</p>
                           <p className="text-2xl font-bold text-primary">
-                            PKR {(child.monthlyAmount || 5000).toLocaleString()}
+                            PKR {(child.monthlyAmount || 30000).toLocaleString()}
                           </p>
                         </div>
                         <Button
@@ -378,15 +427,20 @@ export default function SponsorshipPage() {
                 <h2 className={`text-2xl md:text-3xl font-bold mb-2 ${isRTL ? "text-right" : ""}`}>{t("sponsor.alreadySponsored")}</h2>
                 <p className={`text-muted-foreground mb-8 ${isRTL ? "text-right" : ""}`}>{t("sponsor.alreadySponsoredDesc")}</p>
               </ScrollReveal>
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 opacity-75">
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                 {sponsoredChildren.map((child) => (
-                  <Card key={child.id} className="p-4 text-center">
+                  <Card
+                    key={child.id}
+                    className="p-4 text-center cursor-pointer hover:shadow-lg transition-shadow hover:border-primary/50"
+                    onClick={() => handleSponsoredChildClick(child)}
+                  >
                     <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mx-auto mb-2">
                       <CheckCircle2 className="w-6 h-6 text-green-600 dark:text-green-400" />
                     </div>
                     <p className="font-medium text-sm">{child.name}</p>
                     <p className="text-xs text-muted-foreground">{child.age} {t("sponsor.years")}</p>
                     <Badge variant="secondary" className="mt-2 text-xs">{t("sponsor.sponsored")}</Badge>
+                    <p className="text-xs text-primary mt-2">View Receipt</p>
                   </Card>
                 ))}
               </div>
@@ -420,7 +474,7 @@ export default function SponsorshipPage() {
           <DialogHeader className={isRTL ? "text-right" : ""}>
             <DialogTitle>{t("sponsor.sponsorBtn")} {selectedChild?.name}</DialogTitle>
             <DialogDescription>
-              {t("sponsor.dialogDesc")} PKR {(selectedChild?.monthlyAmount || 5000).toLocaleString()}
+              {t("sponsor.dialogDesc")} PKR {(selectedChild?.monthlyAmount || 30000).toLocaleString()}
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
@@ -506,6 +560,83 @@ export default function SponsorshipPage() {
                   </FormItem>
                 )}
               />
+
+              {/* Bank Transfer Details */}
+              {form.watch("paymentMethod") === "bank" && (
+                <div className="rounded-lg border bg-accent/50 p-4 space-y-3">
+                  <div className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+                    <Building2 className="w-5 h-5 text-primary" />
+                    <h4 className="font-semibold">Bank Transfer Details</h4>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <div className={`flex justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
+                      <span className="text-muted-foreground">Bank Name:</span>
+                      <span className="font-medium">Meezan Bank</span>
+                    </div>
+                    <div className={`flex justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
+                      <span className="text-muted-foreground">Account Title:</span>
+                      <span className="font-medium">Aghosh Orphan Care Home</span>
+                    </div>
+                    <div className={`flex justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
+                      <span className="text-muted-foreground">Account Number:</span>
+                      <div className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+                        <span className="font-mono font-medium">01234567890123</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2"
+                          onClick={() => {
+                            navigator.clipboard.writeText("01234567890123");
+                            toast({ title: "Copied!", description: "Account number copied to clipboard" });
+                          }}
+                        >
+                          <Copy className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div className={`flex justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
+                      <span className="text-muted-foreground">IBAN:</span>
+                      <div className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+                        <span className="font-mono font-medium text-xs">PK36MEZN0001234567890123</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2"
+                          onClick={() => {
+                            navigator.clipboard.writeText("PK36MEZN0001234567890123");
+                            toast({ title: "Copied!", description: "IBAN copied to clipboard" });
+                          }}
+                        >
+                          <Copy className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground pt-2 border-t">
+                    Please transfer PKR {(selectedChild?.monthlyAmount || 5000).toLocaleString()} monthly and keep the receipt. We'll contact you for confirmation.
+                  </p>
+                </div>
+              )}
+
+              {/* Card Payment Info */}
+              {form.watch("paymentMethod") === "card" && (
+                <div className="rounded-lg border bg-primary/5 p-4 space-y-2">
+                  <div className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+                    <CheckCircle2 className="w-5 h-5 text-primary" />
+                    <h4 className="font-semibold">Secure Card Payment</h4>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    After submitting this form, you'll be redirected to our secure Stripe payment page to complete your monthly sponsorship payment of PKR {(selectedChild?.monthlyAmount || 5000).toLocaleString()}.
+                  </p>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2">
+                    <span>🔒 Secured by Stripe</span>
+                    <span>•</span>
+                    <span>Monthly Auto-Payment</span>
+                  </div>
+                </div>
+              )}
 
               <div className={`flex gap-3 pt-4 ${isRTL ? "flex-row-reverse" : ""}`}>
                 <Button

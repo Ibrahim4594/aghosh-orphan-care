@@ -47,7 +47,29 @@ export class WebhookHandlers {
     console.log('Payment intent succeeded:', paymentIntent.id);
     const metadata = paymentIntent.metadata || {};
 
-    // Record the donation
+    // Check if this is an event donation
+    if (metadata.type === 'event_donation' && metadata.eventDonationId) {
+      try {
+        // In newer Stripe versions, charges is accessed differently or via the charges list
+        const charges = (paymentIntent as any).charges?.data || [];
+        const charge = charges[0];
+        const receiptUrl = charge?.receipt_url || null;
+
+        // Update event donation with payment success and receipt URL
+        await storage.updateEventDonation(metadata.eventDonationId, {
+          paymentStatus: 'completed',
+          stripePaymentIntentId: paymentIntent.id,
+          stripeReceiptUrl: receiptUrl,
+        });
+
+        console.log('Event donation updated with payment success:', metadata.eventDonationId);
+      } catch (error) {
+        console.error('Error updating event donation:', error);
+      }
+      return;
+    }
+
+    // Regular donation handling
     try {
       await storage.createDonation({
         donorName: metadata.donorName || 'Anonymous',

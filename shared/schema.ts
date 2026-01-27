@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, boolean, timestamp, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -80,7 +80,9 @@ export const donations = pgTable("donations", {
   isRecurring: boolean("is_recurring").default(false),
   recurringInterval: text("recurring_interval"), // 'monthly', 'quarterly', 'yearly'
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => ({
+  donorIdIdx: index("donations_donor_id_idx").on(table.donorId),
+}));
 
 export const insertDonationSchema = createInsertSchema(donations).omit({
   id: true,
@@ -126,6 +128,27 @@ export const insertImpactStorySchema = createInsertSchema(impactStories).omit({
 
 export type InsertImpactStory = z.infer<typeof insertImpactStorySchema>;
 export type ImpactStory = typeof impactStories.$inferSelect;
+
+// Newsletter subscribers table
+export const newsletterSubscribers = pgTable("newsletter_subscribers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: text("email").notNull().unique(),
+  source: text("source").default("footer"),
+  isActive: boolean("is_active").default(true),
+  mailerliteId: text("mailerlite_id"),
+  mailerliteSynced: boolean("mailerlite_synced").default(false),
+  mailerliteSyncedAt: timestamp("mailerlite_synced_at"),
+  mailerliteError: text("mailerlite_error"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertNewsletterSubscriberSchema = createInsertSchema(newsletterSubscribers).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertNewsletterSubscriber = z.infer<typeof insertNewsletterSubscriberSchema>;
+export type NewsletterSubscriber = typeof newsletterSubscribers.$inferSelect;
 
 // Statistics type (not a table, calculated from data)
 export interface Statistics {
@@ -220,10 +243,51 @@ export const events = pgTable("events", {
 export const insertEventSchema = createInsertSchema(events).omit({
   id: true,
   createdAt: true,
+}).extend({
+  date: z.union([
+    z.date(),
+    z.string().transform((val) => new Date(val))
+  ]),
+  endDate: z.union([
+    z.date(),
+    z.string().transform((val) => new Date(val)),
+    z.null(),
+    z.undefined()
+  ]).optional(),
 });
 
 export type InsertEvent = z.infer<typeof insertEventSchema>;
 export type Event = typeof events.$inferSelect;
+
+// Event Donations table - track donations to specific events
+export const eventDonations = pgTable("event_donations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  eventId: varchar("event_id").notNull(),
+  donorId: varchar("donor_id"), // Optional link to registered donor
+  donorName: text("donor_name").notNull(),
+  donorEmail: text("donor_email").notNull(),
+  donorPhone: text("donor_phone"),
+  amount: integer("amount").notNull(),
+  paymentMethod: text("payment_method").default("bank"),
+  paymentStatus: text("payment_status").default("pending"),
+  attendanceStatus: text("attendance_status").default("attending"), // "attending", "not_attending", "maybe"
+  stripePaymentIntentId: text("stripe_payment_intent_id"),
+  stripeReceiptUrl: text("stripe_receipt_url"),
+  localReceiptNumber: text("local_receipt_number"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  donorIdIdx: index("event_donations_donor_id_idx").on(table.donorId),
+  eventIdIdx: index("event_donations_event_id_idx").on(table.eventId),
+}));
+
+export const insertEventDonationSchema = createInsertSchema(eventDonations).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertEventDonation = z.infer<typeof insertEventDonationSchema>;
+export type EventDonation = typeof eventDonations.$inferSelect;
 
 // Volunteers table
 export const volunteers = pgTable("volunteers", {
@@ -285,9 +349,17 @@ export const sponsorships = pgTable("sponsorships", {
   endDate: timestamp("end_date"),
   status: text("status").default("active"), // 'active', 'paused', 'ended'
   paymentMethod: text("payment_method").default("bank"),
+  paymentStatus: text("payment_status").default("pending"), // 'pending', 'completed', 'failed'
+  stripePaymentIntentId: text("stripe_payment_intent_id"),
+  stripeReceiptUrl: text("stripe_receipt_url"),
+  localReceiptNumber: text("local_receipt_number"),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => ({
+  donorIdIdx: index("sponsorships_donor_id_idx").on(table.donorId),
+  childIdIdx: index("sponsorships_child_id_idx").on(table.childId),
+  statusIdx: index("sponsorships_status_idx").on(table.status),
+}));
 
 export const insertSponsorshipSchema = createInsertSchema(sponsorships).omit({
   id: true,

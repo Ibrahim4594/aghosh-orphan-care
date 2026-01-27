@@ -7,6 +7,7 @@ import { isStripeConfigured } from "./stripeClient";
 import { WebhookHandlers } from "./webhookHandlers";
 import { storage } from "./storage";
 import { testConnection } from "./db";
+import { fetchMissingReceiptURLs } from "./jobs/fetch-receipts";
 
 const app = express();
 const httpServer = createServer(app);
@@ -148,4 +149,20 @@ async function initializeApp() {
   httpServer.listen(port, host, () => {
     log(`serving on http://${host}:${port}`);
   });
+
+  // Start background job to fetch missing Stripe receipt URLs
+  // Run immediately on startup
+  if (isStripeConfigured()) {
+    console.log('[Background Jobs] Starting Stripe receipt fetcher...');
+    fetchMissingReceiptURLs().catch(err => {
+      console.error('[Background Jobs] Receipt fetch error:', err);
+    });
+
+    // Then run every hour
+    setInterval(() => {
+      fetchMissingReceiptURLs().catch(err => {
+        console.error('[Background Jobs] Receipt fetch error:', err);
+      });
+    }, 60 * 60 * 1000); // 1 hour
+  }
 })();

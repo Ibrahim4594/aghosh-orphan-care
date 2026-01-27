@@ -3,10 +3,71 @@ import { Mail, Phone, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useLanguage } from "@/lib/i18n";
+import { useToast } from "@/hooks/use-toast";
+import { useMutation } from "@tanstack/react-query";
+import { useState, FormEvent } from "react";
 import aghoshLogo from "@assets/Aghosh-Karachi-Minhaj-Welfare-Foundation-Pakistan_05_1767633857577.jpg";
 
 export function Footer() {
   const { t, isRTL } = useLanguage();
+  const { toast } = useToast();
+  const [email, setEmail] = useState("");
+
+  const subscribeMutation = useMutation({
+    mutationFn: async (email: string) => {
+      const response = await fetch("/api/newsletter/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to subscribe");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: t("footer.subscriptionSuccess"),
+        description: t("footer.subscriptionSuccessMessage"),
+      });
+      setEmail("");
+    },
+    onError: (error: Error) => {
+      const message = error.message;
+
+      if (message.includes("already subscribed")) {
+        toast({
+          title: t("footer.alreadySubscribed"),
+          description: message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: t("footer.subscriptionError"),
+          description: message,
+          variant: "destructive",
+        });
+      }
+    },
+  });
+
+  const handleSubscribe = (e: FormEvent) => {
+    e.preventDefault();
+
+    if (!email || !email.includes("@")) {
+      toast({
+        title: t("footer.invalidEmail"),
+        description: "Please enter a valid email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    subscribeMutation.mutate(email);
+  };
 
   return (
     <footer className="bg-card border-t">
@@ -68,15 +129,15 @@ export function Footer() {
             <ul className="space-y-3 text-sm">
               <li className={`flex items-start gap-3 text-muted-foreground ${isRTL ? "flex-row-reverse" : ""}`}>
                 <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <span>Near Jamia-al-Minhaj, Shah Jillani Road, Township, Lahore, Pakistan</span>
+                <span>{t("footer.address")}</span>
               </li>
               <li className={`flex items-center gap-3 text-muted-foreground ${isRTL ? "flex-row-reverse" : ""}`}>
                 <Phone className="w-4 h-4 flex-shrink-0" />
-                <span>+92 42 35169111</span>
+                <span>{t("footer.phone")}</span>
               </li>
               <li className={`flex items-center gap-3 text-muted-foreground ${isRTL ? "flex-row-reverse" : ""}`}>
                 <Mail className="w-4 h-4 flex-shrink-0" />
-                <span>info@welfare.org.pk</span>
+                <span>{t("footer.email")}</span>
               </li>
             </ul>
           </div>
@@ -86,17 +147,25 @@ export function Footer() {
             <p className="text-sm text-muted-foreground">
               {t("footer.newsletter")}
             </p>
-            <div className={`flex gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
-              <Input 
-                type="email" 
-                placeholder="Your email" 
+            <form onSubmit={handleSubscribe} className={`flex gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+              <Input
+                type="email"
+                placeholder="Your email"
                 className="flex-1"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={subscribeMutation.isPending}
                 data-testid="input-newsletter-email"
               />
-              <Button size="default" data-testid="button-newsletter-subscribe">
-                {t("footer.subscribe")}
+              <Button
+                type="submit"
+                size="default"
+                disabled={subscribeMutation.isPending}
+                data-testid="button-newsletter-subscribe"
+              >
+                {subscribeMutation.isPending ? t("footer.subscribing") : t("footer.subscribe")}
               </Button>
-            </div>
+            </form>
           </div>
         </div>
 

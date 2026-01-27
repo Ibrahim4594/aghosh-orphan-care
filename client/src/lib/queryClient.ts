@@ -122,25 +122,25 @@ export const getQueryFn: <T>(options: {
   on401: UnauthorizedBehavior;
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
-  async ({ queryKey }) => {
-    const headers: Record<string, string> = {};
-    const token = getAuthToken();
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
-    
-    const res = await fetch(queryKey.join("/") as string, {
-      credentials: "include",
-      headers,
-    });
+    async ({ queryKey }) => {
+      const headers: Record<string, string> = {};
+      const token = getAuthToken();
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
 
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
-    }
+      const res = await fetch(queryKey.join("/") as string, {
+        credentials: "include",
+        headers,
+      });
 
-    await throwIfResNotOk(res);
-    return await res.json();
-  };
+      if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+        return null;
+      }
+
+      await throwIfResNotOk(res);
+      return await res.json();
+    };
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -148,8 +148,10 @@ export const queryClient = new QueryClient({
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
-      staleTime: Infinity,
-      retry: false,
+      staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+      gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+      retry: 1,
+      retryDelay: 1000,
     },
     mutations: {
       retry: false,
