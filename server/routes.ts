@@ -9,14 +9,10 @@ import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClie
 import { addSubscriberToMailerLite, getMailerLiteGroupId } from "./mailerliteClient";
 import multer from "multer";
 import path from "path";
-import { fileURLToPath } from "url";
 import fs from "fs";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 // Configure multer for file uploads
-const uploadDir = path.join(__dirname, "..", "public", "uploads");
+const uploadDir = path.join(process.cwd(), "public", "uploads");
 
 // Ensure upload directory exists
 if (!fs.existsSync(uploadDir)) {
