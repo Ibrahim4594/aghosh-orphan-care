@@ -7,7 +7,10 @@ import { format, isPast, isFuture, isToday } from "date-fns";
 import { ScrollReveal, StaggerContainer, StaggerItem, HoverLift } from "@/lib/animations";
 import { CardSkeleton } from "@/components/ui/skeletons";
 import { useLanguage } from "@/lib/i18n";
-import { Link } from "wouter";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Link, useLocation } from "wouter";
+import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 interface Event {
   id: string;
@@ -24,6 +27,9 @@ interface Event {
 
 export default function EventsPage() {
   const { t, isRTL } = useLanguage();
+  const { toast } = useToast();
+  const [attendance, setAttendance] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState<Record<string, boolean>>({});
 
   const { data: events, isLoading } = useQuery<Event[]>({
     queryKey: ["/api/events"],
@@ -33,6 +39,33 @@ export default function EventsPage() {
       return response.json();
     },
   });
+
+  const handleAttendanceChange = (eventId: string, value: string) => {
+    setAttendance(prev => ({ ...prev, [eventId]: value }));
+  };
+
+  const submitAttendance = (eventId: string) => {
+    const status = attendance[eventId];
+    if (!status) {
+      toast({
+        title: "Select Status",
+        description: "Please select your attendance status first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(prev => ({ ...prev, [eventId]: true }));
+
+    // Fake submission
+    setTimeout(() => {
+      toast({
+        title: "Status Updated",
+        description: "Your attendance status has been recorded locally.",
+      });
+      setIsSubmitting(prev => ({ ...prev, [eventId]: false }));
+    }, 1000);
+  };
 
   const getEventTypeColor = (type: string) => {
     const colors: Record<string, string> = {
@@ -159,6 +192,28 @@ export default function EventsPage() {
                               <MapPin className="w-4 h-4 text-primary" />
                               <span>{event.location}</span>
                             </div>
+                          </div>
+                          <div className="mt-4 space-y-3">
+                            <Select
+                              value={attendance[event.id]}
+                              onValueChange={(val) => handleAttendanceChange(event.id, val)}
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Will you attend?" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="attending">Will Attend</SelectItem>
+                                <SelectItem value="not_attending">Will Not Attend</SelectItem>
+                                <SelectItem value="maybe">Maybe</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              className="w-full"
+                              onClick={() => submitAttendance(event.id)}
+                              disabled={isSubmitting[event.id]}
+                            >
+                              {isSubmitting[event.id] ? "Updating..." : "Update Status"}
+                            </Button>
                           </div>
                         </CardContent>
                       </Card>
