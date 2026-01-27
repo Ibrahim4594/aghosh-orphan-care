@@ -144,25 +144,30 @@ async function initializeApp() {
     await setupVite(httpServer, app);
   }
 
-  const port = parseInt(process.env.PORT || "5000", 10);
-  const host = process.env.HOST || "0.0.0.0";
-  httpServer.listen(port, host, () => {
-    log(`serving on http://${host}:${port}`);
-  });
-
-  // Start background job to fetch missing Stripe receipt URLs
-  // Run immediately on startup
-  if (isStripeConfigured()) {
-    console.log('[Background Jobs] Starting Stripe receipt fetcher...');
-    fetchMissingReceiptURLs().catch(err => {
-      console.error('[Background Jobs] Receipt fetch error:', err);
+  // Only start the server if not running on Vercel (where it exports the app)
+  if (process.env.VERCEL !== "1") {
+    const port = parseInt(process.env.PORT || "5000", 10);
+    const host = process.env.HOST || "0.0.0.0";
+    httpServer.listen(port, host, () => {
+      log(`serving on http://${host}:${port}`);
     });
 
-    // Then run every hour
-    setInterval(() => {
+    // Start background job to fetch missing Stripe receipt URLs
+    // Run immediately on startup
+    if (isStripeConfigured()) {
+      console.log('[Background Jobs] Starting Stripe receipt fetcher...');
       fetchMissingReceiptURLs().catch(err => {
         console.error('[Background Jobs] Receipt fetch error:', err);
       });
-    }, 60 * 60 * 1000); // 1 hour
+
+      // Then run every hour
+      setInterval(() => {
+        fetchMissingReceiptURLs().catch(err => {
+          console.error('[Background Jobs] Receipt fetch error:', err);
+        });
+      }, 60 * 60 * 1000); // 1 hour
+    }
   }
 })();
+
+export default app;
