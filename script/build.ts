@@ -35,39 +35,51 @@ const allowlist = [
 ];
 
 async function buildAll() {
-  try {
-    await rm("dist", { recursive: true, force: true });
+  const startTime = Date.now();
+  console.log("🚀 Starting production build...\n");
 
-    console.log("building client...");
-    await viteBuild();
+  // Clean dist folder
+  console.log("🧹 Cleaning dist folder...");
+  await rm("dist", { recursive: true, force: true });
 
-    console.log("building server...");
-    const pkg = JSON.parse(await readFile("package.json", "utf-8"));
-    const allDeps = [
-      ...Object.keys(pkg.dependencies || {}),
-      ...Object.keys(pkg.devDependencies || {}),
-    ];
-    const externals = allDeps.filter((dep) => !allowlist.includes(dep));
+  // Build client
+  console.log("\n📦 Building client bundle...");
+  const clientStart = Date.now();
+  await viteBuild();
+  console.log(`✅ Client built in ${((Date.now() - clientStart) / 1000).toFixed(2)}s\n`);
 
-    await esbuild({
-      entryPoints: ["server/index.ts"],
-      platform: "node",
-      bundle: true,
-      format: "cjs",
-      outfile: "dist/index.cjs",
-      define: {
-        "process.env.NODE_ENV": '"production"',
-      },
-      minify: true,
-      external: externals,
-      logLevel: "info",
-    });
-    console.log("Build complete successfully!");
-  } catch (error) {
-    console.error("Build failed with error:");
-    console.error(error);
-    process.exit(1);
-  }
+  // Build server
+  console.log("🔧 Building server bundle...");
+  const serverStart = Date.now();
+  const pkg = JSON.parse(await readFile("package.json", "utf-8"));
+  const allDeps = [
+    ...Object.keys(pkg.dependencies || {}),
+    ...Object.keys(pkg.devDependencies || {}),
+  ];
+  const externals = allDeps.filter((dep) => !allowlist.includes(dep));
+
+  await esbuild({
+    entryPoints: ["server/index.ts"],
+    platform: "node",
+    bundle: true,
+    format: "cjs",
+    outfile: "dist/index.cjs",
+    define: {
+      "process.env.NODE_ENV": '"production"',
+    },
+    minify: true,
+    external: externals,
+    logLevel: "info",
+    metafile: true,
+  });
+  console.log(`✅ Server built in ${((Date.now() - serverStart) / 1000).toFixed(2)}s\n`);
+
+  const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
+  console.log(`\n🎉 Production build completed successfully in ${totalTime}s!`);
+  console.log("📁 Output directory: dist/");
 }
 
-buildAll();
+buildAll().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

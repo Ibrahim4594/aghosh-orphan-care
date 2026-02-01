@@ -1,0 +1,40 @@
+# Development files
+node_modules
+.git
+.github
+.vscode
+.idea
+
+# Local environment files
+.env.local
+.env.*.local
+
+# Build artifacts (will be rebuilt on Koyeb)
+client/dist
+dist
+
+# Logs
+*.log
+npm-debug.log*
+logs
+
+# Testing
+coverage
+.nyc_output
+
+# Temporary files
+tmp
+temp
+*.tmp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Documentation
+README.md
+docs
+
+# Scripts and tools
+script/*.md
+attached_assets/*.md

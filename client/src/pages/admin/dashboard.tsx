@@ -51,6 +51,10 @@ import {
   Clock,
   CalendarDays,
   Settings,
+  Eye,
+  CheckCircle,
+  XCircle,
+  HelpCircle,
 } from "lucide-react";
 import { apiRequest, queryClient, clearAuthToken } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -59,9 +63,9 @@ import { LanguageToggle } from "@/components/language-toggle";
 import { ImprovedChildForm } from "@/components/admin/ImprovedChildForm";
 import { ImprovedEventForm } from "@/components/admin/ImprovedEventForm";
 
-// Schemas
-const childSchema = z.object({
-  name: z.string().min(2, "Name is required"),
+// Schema factories - create schemas with translated error messages
+const createChildSchema = (t: (key: string) => string) => z.object({
+  name: z.string().min(2, t("validation.nameRequired")),
   age: z.coerce.number().min(1).max(18),
   gender: z.enum(["male", "female"]),
   grade: z.string().optional(),
@@ -71,17 +75,17 @@ const childSchema = z.object({
   monthlyAmount: z.coerce.number().min(1000).default(5000),
 });
 
-const eventSchema = z.object({
-  title: z.string().min(2, "Title is required"),
-  description: z.string().min(10, "Description is required"),
-  date: z.string().min(1, "Date is required"),
-  location: z.string().min(2, "Location is required"),
+const createEventSchema = (t: (key: string) => string) => z.object({
+  title: z.string().min(2, t("validation.titleRequired")),
+  description: z.string().min(10, t("validation.descriptionRequired")),
+  date: z.string().min(1, t("validation.dateRequired")),
+  location: z.string().min(2, t("validation.locationRequired")),
   imageUrl: z.string().optional().or(z.literal("")),
   eventType: z.enum(["general", "fundraiser", "volunteer", "religious"]).default("general"),
 });
 
-type ChildFormData = z.infer<typeof childSchema>;
-type EventFormData = z.infer<typeof eventSchema>;
+type ChildFormData = z.infer<ReturnType<typeof createChildSchema>>;
+type EventFormData = z.infer<ReturnType<typeof createEventSchema>>;
 
 interface Volunteer {
   id: string;
@@ -137,6 +141,7 @@ export default function AdminDashboardPage() {
   const { t, isRTL } = useLanguage();
   const [isChildDialogOpen, setIsChildDialogOpen] = useState(false);
   const [isEventDialogOpen, setIsEventDialogOpen] = useState(false);
+  const [selectedEventForRSVP, setSelectedEventForRSVP] = useState<string | null>(null);
 
   // Verify session on mount
   const { data: sessionData } = useQuery({
@@ -191,9 +196,22 @@ export default function AdminDashboardPage() {
     queryKey: ["/api/events"],
   });
 
-  // Forms
+  // Fetch RSVPs for selected event
+  const { data: eventRSVPs = [], isLoading: rsvpsLoading } = useQuery({
+    queryKey: [`/api/admin/events/${selectedEventForRSVP}/donations`],
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/admin/events/${selectedEventForRSVP}/donations`, undefined);
+      return res.json();
+    },
+    enabled: !!selectedEventForRSVP,
+    staleTime: 0, // Always fetch fresh data
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+  });
+
+  // Forms with translated validation
   const childForm = useForm<ChildFormData>({
-    resolver: zodResolver(childSchema),
+    resolver: zodResolver(createChildSchema(t)),
     defaultValues: {
       name: "",
       age: 5,
@@ -207,7 +225,7 @@ export default function AdminDashboardPage() {
   });
 
   const eventForm = useForm<EventFormData>({
-    resolver: zodResolver(eventSchema),
+    resolver: zodResolver(createEventSchema(t)),
     defaultValues: {
       title: "",
       description: "",
@@ -747,6 +765,14 @@ export default function AdminDashboardPage() {
                         <div className="flex items-center gap-3">
                           <Badge variant="secondary">{event.eventType}</Badge>
                           <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedEventForRSVP(event.id)}
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            View RSVPs
+                          </Button>
+                          <Button
                             variant="ghost"
                             size="icon"
                             className="text-red-500 hover:text-red-600 hover:bg-red-50"
@@ -762,6 +788,71 @@ export default function AdminDashboardPage() {
                 )}
               </CardContent>
             </Card>
+
+            {/* RSVP Dialog */}
+            <Dialog open={!!selectedEventForRSVP} onOpenChange={(open) => !open && setSelectedEventForRSVP(null)}>
+              <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Event RSVPs</DialogTitle>
+                  <DialogDescription>
+                    View who has responded to this event
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  {rsvpsLoading ? (
+                    <div className="flex justify-center py-8">
+                      <Loader2 className="w-6 h-6 animate-spin" />
+                    </div>
+                  ) : eventRSVPs.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <p>No RSVPs yet</p>
+                      <p className="text-sm">RSVPs will appear here when people respond</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {eventRSVPs.map((rsvp: any) => (
+                        <div key={rsvp.id} className="flex items-center justify-between p-4 border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                              rsvp.attendanceStatus === 'attending' ? 'bg-green-100 dark:bg-green-900/30' :
+                              rsvp.attendanceStatus === 'not_attending' ? 'bg-red-100 dark:bg-red-900/30' :
+                              'bg-amber-100 dark:bg-amber-900/30'
+                            }`}>
+                              {rsvp.attendanceStatus === 'attending' ? (
+                                <CheckCircle className="w-5 h-5 text-green-600" />
+                              ) : rsvp.attendanceStatus === 'not_attending' ? (
+                                <XCircle className="w-5 h-5 text-red-600" />
+                              ) : (
+                                <HelpCircle className="w-5 h-5 text-amber-600" />
+                              )}
+                            </div>
+                            <div>
+                              <p className="font-medium">{rsvp.donorName || 'Anonymous'}</p>
+                              <p className="text-sm text-muted-foreground">{rsvp.donorEmail || 'No email'}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <Badge variant={
+                              rsvp.attendanceStatus === 'attending' ? 'default' :
+                              rsvp.attendanceStatus === 'not_attending' ? 'destructive' :
+                              'secondary'
+                            }>
+                              {rsvp.attendanceStatus === 'attending' ? 'Will Attend' :
+                               rsvp.attendanceStatus === 'not_attending' ? 'Won\'t Attend' :
+                               'Maybe'}
+                            </Badge>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {new Date(rsvp.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
           </TabsContent>
 
           {/* Volunteers Tab */}

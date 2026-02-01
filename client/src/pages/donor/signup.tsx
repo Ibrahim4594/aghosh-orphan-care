@@ -21,20 +21,20 @@ import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/lib/i18n";
 import { LanguageToggle } from "@/components/language-toggle";
 
-const signupSchema = z.object({
-  fullName: z.string().min(2, "Full name must be at least 2 characters"),
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string().min(6, "Password must be at least 6 characters"),
+const createSignupSchema = (t: (key: string) => string) => z.object({
+  fullName: z.string().min(2, t("validation.fullNameMinLength")),
+  email: z.string().email(t("validation.invalidEmail")),
+  password: z.string().min(6, t("validation.passwordMinLength")),
+  confirmPassword: z.string().min(6, t("validation.passwordMinLength")),
   phone: z.string().optional(),
   city: z.string().optional(),
   country: z.string().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
+  message: t("validation.passwordsDontMatch"),
   path: ["confirmPassword"],
 });
 
-type SignupFormData = z.infer<typeof signupSchema>;
+type SignupFormData = z.infer<ReturnType<typeof createSignupSchema>>;
 
 interface SignupResponse {
   message: string;
@@ -60,7 +60,7 @@ export default function DonorSignupPage() {
   }, [isAuthenticated, setLocation]);
 
   const form = useForm<SignupFormData>({
-    resolver: zodResolver(signupSchema),
+    resolver: zodResolver(createSignupSchema(t)),
     defaultValues: {
       fullName: "",
       email: "",

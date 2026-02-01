@@ -165,7 +165,6 @@ class MemoryStorage implements IStorage {
       id: randomUUID(),
       username: insertUser.username,
       password: hashedPassword,
-      createdAt: new Date(),
     };
     this.users.set(user.id, user);
     return user;
@@ -229,10 +228,15 @@ class MemoryStorage implements IStorage {
   async createDonation(donation: InsertDonation): Promise<Donation> {
     const newDonation: Donation = {
       id: randomUUID(),
-      ...donation,
-      email: donation.email || null,
-      message: donation.message || null,
-      donorId: donation.donorId || null,
+      donorId: donation.donorId ?? null,
+      donorName: donation.donorName ?? null,
+      email: donation.email ?? null,
+      amount: donation.amount,
+      category: donation.category,
+      isAnonymous: donation.isAnonymous ?? false,
+      paymentMethod: donation.paymentMethod,
+      isRecurring: donation.isRecurring ?? false,
+      recurringInterval: donation.recurringInterval ?? null,
       createdAt: new Date(),
     };
     this.donations.set(newDonation.id, newDonation);
@@ -258,7 +262,6 @@ class MemoryStorage implements IStorage {
       ...program,
       imageUrl: program.imageUrl || null,
       isActive: program.isActive ?? true,
-      createdAt: new Date(),
     };
     this.programs.set(newProgram.id, newProgram);
     return newProgram;
@@ -333,7 +336,6 @@ class MemoryStorage implements IStorage {
     const newMessage: ContactMessage = {
       id: randomUUID(),
       ...message,
-      phone: message.phone || null,
       status: "unread",
       adminNotes: null,
       readAt: null,
@@ -366,8 +368,13 @@ class MemoryStorage implements IStorage {
   async createEvent(event: InsertEvent): Promise<Event> {
     const newEvent: Event = {
       id: randomUUID(),
-      ...event,
-      imageUrl: event.imageUrl || null,
+      title: event.title,
+      description: event.description,
+      date: event.date instanceof Date ? event.date : new Date(event.date),
+      endDate: event.endDate ? (event.endDate instanceof Date ? event.endDate : new Date(event.endDate)) : null,
+      location: event.location,
+      imageUrl: event.imageUrl ?? null,
+      eventType: event.eventType ?? "general",
       isActive: event.isActive ?? true,
       createdAt: new Date(),
     };
@@ -391,8 +398,20 @@ class MemoryStorage implements IStorage {
   async createEventDonation(eventDonation: InsertEventDonation): Promise<EventDonation> {
     const newEventDonation: EventDonation = {
       id: randomUUID(),
-      ...eventDonation,
-      createdAt: new Date().toISOString(),
+      eventId: eventDonation.eventId,
+      donorId: eventDonation.donorId ?? null,
+      donorName: eventDonation.donorName,
+      donorEmail: eventDonation.donorEmail,
+      donorPhone: eventDonation.donorPhone ?? null,
+      amount: eventDonation.amount,
+      paymentMethod: eventDonation.paymentMethod ?? "bank",
+      paymentStatus: eventDonation.paymentStatus ?? "pending",
+      attendanceStatus: eventDonation.attendanceStatus ?? "attending",
+      stripePaymentIntentId: eventDonation.stripePaymentIntentId ?? null,
+      stripeReceiptUrl: eventDonation.stripeReceiptUrl ?? null,
+      localReceiptNumber: eventDonation.localReceiptNumber ?? null,
+      notes: eventDonation.notes ?? null,
+      createdAt: new Date(),
     };
     this.eventDonations.set(newEventDonation.id, newEventDonation);
     return newEventDonation;
@@ -436,10 +455,13 @@ class MemoryStorage implements IStorage {
   async createVolunteer(volunteer: InsertVolunteer): Promise<Volunteer> {
     const newVolunteer: Volunteer = {
       id: randomUUID(),
-      ...volunteer,
-      phone: volunteer.phone || null,
-      skills: volunteer.skills || null,
-      availability: volunteer.availability || null,
+      fullName: volunteer.fullName,
+      email: volunteer.email,
+      phone: volunteer.phone ?? null,
+      city: volunteer.city ?? null,
+      skills: volunteer.skills ?? null,
+      availability: volunteer.availability ?? null,
+      message: volunteer.message ?? null,
       status: "pending",
       createdAt: new Date(),
     };
@@ -471,10 +493,14 @@ class MemoryStorage implements IStorage {
   async createChild(child: InsertChild): Promise<Child> {
     const newChild: Child = {
       id: randomUUID(),
-      ...child,
-      story: child.story || null,
-      imageUrl: child.imageUrl || null,
-      monthlyAmount: child.monthlyAmount || 5000,
+      name: child.name,
+      age: child.age,
+      gender: child.gender,
+      grade: child.grade ?? null,
+      story: child.story ?? null,
+      needs: child.needs ?? null,
+      imageUrl: child.imageUrl ?? null,
+      monthlyAmount: child.monthlyAmount ?? 5000,
       isSponsored: false,
       isActive: true,
       createdAt: new Date(),
@@ -510,10 +536,21 @@ class MemoryStorage implements IStorage {
   async createSponsorship(sponsorship: InsertSponsorship): Promise<Sponsorship> {
     const newSponsorship: Sponsorship = {
       id: randomUUID(),
-      ...sponsorship,
-      donorId: sponsorship.donorId || null,
-      sponsorPhone: sponsorship.sponsorPhone || null,
-      notes: sponsorship.notes || null,
+      childId: sponsorship.childId,
+      donorId: sponsorship.donorId ?? null,
+      sponsorName: sponsorship.sponsorName,
+      sponsorEmail: sponsorship.sponsorEmail,
+      sponsorPhone: sponsorship.sponsorPhone ?? null,
+      monthlyAmount: sponsorship.monthlyAmount,
+      startDate: sponsorship.startDate instanceof Date ? sponsorship.startDate : new Date(),
+      endDate: sponsorship.endDate ? (sponsorship.endDate instanceof Date ? sponsorship.endDate : new Date(sponsorship.endDate)) : null,
+      status: sponsorship.status ?? "active",
+      paymentMethod: sponsorship.paymentMethod ?? "bank",
+      paymentStatus: sponsorship.paymentStatus ?? "pending",
+      stripePaymentIntentId: sponsorship.stripePaymentIntentId ?? null,
+      stripeReceiptUrl: sponsorship.stripeReceiptUrl ?? null,
+      localReceiptNumber: sponsorship.localReceiptNumber ?? null,
+      notes: sponsorship.notes ?? null,
       createdAt: new Date(),
     };
     this.sponsorships.set(newSponsorship.id, newSponsorship);
@@ -546,7 +583,13 @@ class MemoryStorage implements IStorage {
   async createNewsletterSubscriber(subscriber: InsertNewsletterSubscriber): Promise<NewsletterSubscriber> {
     const newSubscriber: NewsletterSubscriber = {
       id: randomUUID(),
-      ...subscriber,
+      email: subscriber.email,
+      source: subscriber.source ?? "footer",
+      isActive: subscriber.isActive ?? true,
+      mailerliteId: subscriber.mailerliteId ?? null,
+      mailerliteSynced: subscriber.mailerliteSynced ?? false,
+      mailerliteSyncedAt: subscriber.mailerliteSyncedAt ? (subscriber.mailerliteSyncedAt instanceof Date ? subscriber.mailerliteSyncedAt : new Date(subscriber.mailerliteSyncedAt)) : null,
+      mailerliteError: subscriber.mailerliteError ?? null,
       createdAt: new Date(),
     };
     this.newsletterSubscribers.set(newSubscriber.id, newSubscriber);

@@ -34,41 +34,13 @@ import ReceiptPage from "@/pages/receipt";
 import DonateTestPage from "@/pages/donate-test";
 import NotFound from "@/pages/not-found";
 
-// Auth guard - requires login for all pages except public/auth pages
+// Simple auth guard - no redirects, just render children
 function AuthGuard({ children }: { children: React.ReactNode }) {
-  const [location] = useLocation();
-  const { isAuthenticated, isLoading } = useAuth();
-
-  // Public paths that don't require authentication (admin paths are separate auth)
-  const publicPaths = ["/welcome", "/donor/signup", "/donor/login", "/login", "/signup", "/admin", "/admin/dashboard", "/admin/settings"];
-  const isPublicPath = publicPaths.some(path => location === path || location.startsWith(path + "/"));
-
-  // Show nothing while checking auth state
-  if (isLoading) {
-    return null;
-  }
-
-  // If not authenticated and not on public page, show welcome page
-  if (!isAuthenticated && !isPublicPath) {
-    return <WelcomePage />;
-  }
-
   return <>{children}</>;
 }
 
-// Welcome page redirect - if logged in, go to home
+// Welcome page
 function WelcomeRedirect() {
-  const { isAuthenticated, isLoading } = useAuth();
-
-  if (isLoading) {
-    return null;
-  }
-
-  // If already logged in, redirect to home
-  if (isAuthenticated) {
-    return <Redirect to="/" />;
-  }
-
   return (
     <PageTransition>
       <WelcomePage />
@@ -220,7 +192,7 @@ function Router() {
           <Redirect to="/donor/signup" />
         </Route>
         <Route path="/welcome">
-          <WelcomeRedirect />
+          <Redirect to="/" />
         </Route>
         <Route path="/donor/login">
           <PublicLayout>

@@ -22,18 +22,18 @@ import { useLanguage } from "@/lib/i18n";
 import { LanguageToggle } from "@/components/language-toggle";
 import { setAuthToken } from "@/lib/queryClient";
 
-const donorLoginSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+const createDonorLoginSchema = (t: (key: string) => string) => z.object({
+  email: z.string().email(t("validation.invalidEmail")),
+  password: z.string().min(6, t("validation.passwordMinLength")),
 });
 
-const adminLoginSchema = z.object({
-  username: z.string().min(1, "Username is required"),
-  password: z.string().min(1, "Password is required"),
+const createAdminLoginSchema = (t: (key: string) => string) => z.object({
+  username: z.string().min(1, t("validation.usernameRequired")),
+  password: z.string().min(1, t("validation.passwordRequired")),
 });
 
-type DonorLoginFormData = z.infer<typeof donorLoginSchema>;
-type AdminLoginFormData = z.infer<typeof adminLoginSchema>;
+type DonorLoginFormData = z.infer<ReturnType<typeof createDonorLoginSchema>>;
+type AdminLoginFormData = z.infer<ReturnType<typeof createAdminLoginSchema>>;
 
 interface LoginResponse {
   message: string;
@@ -63,7 +63,7 @@ export default function DonorLoginPage() {
   }, [isAuthenticated, setLocation]);
 
   const donorForm = useForm<DonorLoginFormData>({
-    resolver: zodResolver(donorLoginSchema),
+    resolver: zodResolver(createDonorLoginSchema(t)),
     defaultValues: {
       email: "",
       password: "",
@@ -71,7 +71,7 @@ export default function DonorLoginPage() {
   });
 
   const adminForm = useForm<AdminLoginFormData>({
-    resolver: zodResolver(adminLoginSchema),
+    resolver: zodResolver(createAdminLoginSchema(t)),
     defaultValues: {
       username: "",
       password: "",

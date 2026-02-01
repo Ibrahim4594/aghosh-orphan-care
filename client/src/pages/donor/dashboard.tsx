@@ -76,6 +76,7 @@ interface Sponsorship {
   paymentMethod: string;
   paymentStatus: string;
   localReceiptNumber: string | null;
+  stripeReceiptUrl: string | null;
   createdAt: string;
 }
 
@@ -116,7 +117,7 @@ export default function DonorDashboardPage() {
     }
   }, [authLoading, isAuthenticated, setLocation]);
 
-  // Fetch donor's donations with optimized settings
+  // Fetch donor's donations with real-time updates
   const { data: donations, isLoading: donationsLoading } = useQuery<Donation[]>({
     queryKey: ["/api/donor/donations"],
     queryFn: async () => {
@@ -124,11 +125,12 @@ export default function DonorDashboardPage() {
       return response.json();
     },
     enabled: isAuthenticated,
-    staleTime: 2 * 60 * 1000, // Consider fresh for 2 minutes
-    cacheTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+    staleTime: 0, // Always fetch fresh data
+    refetchOnWindowFocus: true, // Refetch when user returns to the page
+    refetchOnMount: true, // Refetch when component mounts
   });
 
-  // Fetch donor's sponsorships with optimized settings
+  // Fetch donor's sponsorships with real-time updates
   const { data: sponsorships, isLoading: sponsorshipsLoading } = useQuery<Sponsorship[]>({
     queryKey: ["/api/donor/sponsorships"],
     queryFn: async () => {
@@ -136,8 +138,9 @@ export default function DonorDashboardPage() {
       return response.json();
     },
     enabled: isAuthenticated,
-    staleTime: 2 * 60 * 1000, // Consider fresh for 2 minutes
-    cacheTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+    staleTime: 0, // Always fetch fresh data
+    refetchOnWindowFocus: true, // Refetch when user returns to the page
+    refetchOnMount: true, // Refetch when component mounts
   });
 
   // Fetch all events
@@ -150,7 +153,7 @@ export default function DonorDashboardPage() {
     enabled: isAuthenticated,
   });
 
-  // Fetch donor's event donations
+  // Fetch donor's event donations with real-time updates
   const { data: eventDonations, isLoading: eventDonationsLoading } = useQuery<EventDonation[]>({
     queryKey: ["/api/donor/event-donations"],
     queryFn: async () => {
@@ -158,8 +161,9 @@ export default function DonorDashboardPage() {
       return response.json();
     },
     enabled: isAuthenticated,
-    staleTime: 2 * 60 * 1000,
-    cacheTime: 10 * 60 * 1000,
+    staleTime: 0, // Always fetch fresh data
+    refetchOnWindowFocus: true, // Refetch when user returns to the page
+    refetchOnMount: true, // Refetch when component mounts
   });
 
   // Logout mutation
@@ -267,20 +271,20 @@ export default function DonorDashboardPage() {
     country: null,
     createdAt: new Date().toISOString(),
   };
-  const totalDonations = donations?.reduce((sum, d) => sum + d.amount, 0) || 0;
-  const donationCount = donations?.length || 0;
+  const totalDonations = (donations as Donation[])?.reduce((sum, d) => sum + d.amount, 0) || 0;
+  const donationCount = (donations as Donation[])?.length || 0;
 
-  const totalSponsorships = sponsorships?.filter(s => s.status === 'active').length || 0;
-  const totalSponsorshipAmount = sponsorships
+  const totalSponsorships = (sponsorships as Sponsorship[])?.filter(s => s.status === 'active').length || 0;
+  const totalSponsorshipAmount = (sponsorships as Sponsorship[])
     ?.filter(s => s.status === 'active')
     .reduce((sum, s) => sum + s.monthlyAmount, 0) || 0;
 
-  const totalEventDonations = eventDonations?.reduce((sum, ed) => sum + ed.amount, 0) || 0;
-  const eventDonationCount = eventDonations?.length || 0;
+  const totalEventDonations = (eventDonations as EventDonation[])?.reduce((sum, ed) => sum + ed.amount, 0) || 0;
+  const eventDonationCount = (eventDonations as EventDonation[])?.length || 0;
 
   const totalContributed = totalDonations + totalSponsorshipAmount + totalEventDonations;
-  const totalEvents = events?.length || 0;
-  const upcomingEvents = events?.filter(e => new Date(e.date) > new Date()).slice(0, 3) || [];
+  const totalEvents = (events as Event[])?.length || 0;
+  const upcomingEvents = (events as Event[])?.filter(e => new Date(e.date) > new Date()).slice(0, 3) || [];
 
   const getCategoryLabel = (category: string) => {
     const labels: Record<string, string> = {
@@ -550,7 +554,7 @@ export default function DonorDashboardPage() {
             <CardContent>
               {donationsLoading ? (
                 <TableSkeleton rows={5} columns={4} />
-              ) : donations && donations.length > 0 ? (
+              ) : donations && (donations as Donation[]).length > 0 ? (
                 <div className="rounded-md border">
                   <Table>
                     <TableHeader>
@@ -562,7 +566,7 @@ export default function DonorDashboardPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {donations.map((donation) => (
+                      {(donations as Donation[]).map((donation) => (
                         <TableRow key={donation.id}>
                           <TableCell>
                             {donation.createdAt
@@ -626,7 +630,7 @@ export default function DonorDashboardPage() {
             <CardContent>
               {sponsorshipsLoading ? (
                 <TableSkeleton rows={3} columns={5} />
-              ) : sponsorships && sponsorships.length > 0 ? (
+              ) : sponsorships && (sponsorships as Sponsorship[]).length > 0 ? (
                 <div className="rounded-md border overflow-hidden">
                   <Table>
                     <TableHeader>
@@ -639,7 +643,7 @@ export default function DonorDashboardPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {sponsorships.map((sponsorship) => (
+                      {(sponsorships as Sponsorship[]).map((sponsorship) => (
                         <TableRow key={sponsorship.id} className="hover:bg-muted/30">
                           <TableCell className="font-medium">{sponsorship.sponsorName}</TableCell>
                           <TableCell>
@@ -752,7 +756,7 @@ export default function DonorDashboardPage() {
                       religious: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200",
                     };
 
-                    const alreadyDonated = eventDonations?.some(ed => ed.eventId === event.id);
+                    const alreadyDonated = (eventDonations as EventDonation[])?.some(ed => ed.eventId === event.id);
 
                     return (
                       <Card key={event.id} className="overflow-hidden hover:shadow-xl transition-shadow">

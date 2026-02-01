@@ -9,7 +9,7 @@ import { eq, and, isNotNull, isNull } from 'drizzle-orm';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2024-12-18.acacia' as any,
+  apiVersion: '2025-01-27.acacia' as any,
 });
 
 export async function fetchMissingReceiptURLs() {
@@ -17,7 +17,7 @@ export async function fetchMissingReceiptURLs() {
 
   try {
     if (!db) {
-      console.log('[Receipt Job] Database not initialized, skipping...');
+      console.log('[Receipt Job] Database not configured, skipping...');
       return;
     }
     // Find sponsorships with payment intent IDs but no receipt URLs
@@ -75,13 +75,7 @@ export async function fetchMissingReceiptURLs() {
 }
 
 // If run directly (not imported)
-const isMain = process.argv[1] && (
-  process.argv[1].endsWith('fetch-receipts.ts') ||
-  process.argv[1].endsWith('fetch-receipts.js') ||
-  process.argv[1].endsWith('index.cjs') // esbuild bundle
-);
-
-if (isMain) {
+if (import.meta.url === `file://${process.argv[1]}`.replace(/\\/g, '/')) {
   fetchMissingReceiptURLs()
     .then(() => {
       console.log('[Receipt Job] Done');

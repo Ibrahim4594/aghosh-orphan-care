@@ -5,14 +5,18 @@ import { storage, verifyPassword } from "./storage";
 import { insertDonationSchema, insertProgramSchema, insertImpactStorySchema, insertContactMessageSchema, insertEventSchema, insertEventDonationSchema, insertVolunteerSchema, insertChildSchema, insertSponsorshipSchema, insertNewsletterSubscriberSchema, donationCategories, donorLoginSchema, donorSignupSchema } from "@shared/schema";
 import { z } from "zod";
 import { randomUUID } from "crypto";
-import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
+import { getUncachableStripeClient, getStripePublishableKey, getStripeClient } from "./stripeClient";
 import { addSubscriberToMailerLite, getMailerLiteGroupId } from "./mailerliteClient";
 import multer from "multer";
 import path from "path";
+import { fileURLToPath } from "url";
 import fs from "fs";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 // Configure multer for file uploads
-const uploadDir = path.join(process.cwd(), "public", "uploads");
+const uploadDir = path.join(__dirname, "..", "public", "uploads");
 
 // Ensure upload directory exists
 if (!fs.existsSync(uploadDir)) {
@@ -653,8 +657,8 @@ export async function registerRoutes(
         return res.status(401).json({ message: "Unauthorized" });
       }
 
-      const donorDonations = await storage.getDonorEventDonations(donorSession.donorId);
-      res.json(donorDonations);
+      const eventDonations = await storage.getDonorEventDonations(donorSession.donorId);
+      res.json(eventDonations);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch event donations" });
     }
@@ -728,7 +732,7 @@ export async function registerRoutes(
       console.log("[Event Donation] Creating payment intent...");
       console.log("[Event Donation] Request body:", req.body);
 
-      const stripe = await getUncachableStripeClient();
+      const stripe = getUncachableStripeClient();
       if (!stripe) {
         console.error("[Event Donation] Stripe not configured");
         return res.status(400).json({ message: "Stripe not configured" });
@@ -766,7 +770,7 @@ export async function registerRoutes(
 
       // Create Stripe payment intent
       console.log("[Event Donation] Creating Stripe payment intent...");
-      const paymentIntent = await stripe.paymentIntents.create({
+      const paymentIntent = await (await getStripeClient()).paymentIntents.create({
         amount: Math.round(amount * 100), // Convert to cents
         currency: "pkr",
         description: `Event Donation: ${eventId}`,
@@ -1812,7 +1816,11 @@ export async function registerRoutes(
         if (!processedPayments.has(paymentIntentId)) {
           processedPayments.add(paymentIntentId);
 
+          // Check if donor is logged in
+          const donorSession = getDonorSessionFromRequest(req);
+
           await storage.createDonation({
+            donorId: donorSession?.donorId || null,
             donorName: metadata.donorName || 'Anonymous',
             email: metadata.donorEmail || null,
             amount: parseInt(metadata.pkrEquivalent || '0'),
@@ -1870,7 +1878,11 @@ export async function registerRoutes(
         if (!processedSessions.has(sessionId)) {
           processedSessions.add(sessionId);
 
+          // Check if donor is logged in
+          const donorSession = getDonorSessionFromRequest(req);
+
           await storage.createDonation({
+            donorId: donorSession?.donorId || null,
             donorName: metadata.donorName || 'Anonymous',
             email: metadata.donorEmail || null,
             amount: parseInt(metadata.pkrEquivalent || '0'),

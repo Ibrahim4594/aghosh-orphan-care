@@ -144,30 +144,60 @@ async function initializeApp() {
     await setupVite(httpServer, app);
   }
 
-  // Only start the server if not running on Vercel (where it exports the app)
-  if (process.env.VERCEL !== "1") {
-    const port = parseInt(process.env.PORT || "5000", 10);
-    const host = process.env.HOST || "0.0.0.0";
-    httpServer.listen(port, host, () => {
-      log(`serving on http://${host}:${port}`);
+  const port = parseInt(process.env.PORT || "5000", 10);
+  const host = process.env.HOST || "0.0.0.0";
+
+  httpServer.listen(port, host, () => {
+    log(`serving on http://${host}:${port}`);
+    log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  });
+
+  // Graceful shutdown handler for production
+  const gracefulShutdown = (signal: string) => {
+    log(`${signal} received. Shutting down gracefully...`);
+    httpServer.close(() => {
+      log('HTTP server closed');
+      process.exit(0);
     });
 
-    // Start background job to fetch missing Stripe receipt URLs
-    // Run immediately on startup
-    if (isStripeConfigured()) {
-      console.log('[Background Jobs] Starting Stripe receipt fetcher...');
+    // Force shutdown after 10 seconds
+    setTimeout(() => {
+      console.error('Forcing shutdown after timeout');
+      process.exit(1);
+    }, 10000);
+  };
+
+  // Listen for termination signals
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+  // Handle uncaught errors in production
+  process.on('uncaughtException', (error) => {
+    console.error('Uncaught Exception:', error);
+    if (process.env.NODE_ENV === 'production') {
+      gracefulShutdown('uncaughtException');
+    } else {
+      process.exit(1);
+    }
+  });
+
+  process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  });
+
+  // Start background job to fetch missing Stripe receipt URLs
+  // Run immediately on startup
+  if (isStripeConfigured()) {
+    console.log('[Background Jobs] Starting Stripe receipt fetcher...');
+    fetchMissingReceiptURLs().catch(err => {
+      console.error('[Background Jobs] Receipt fetch error:', err);
+    });
+
+    // Then run every hour
+    setInterval(() => {
       fetchMissingReceiptURLs().catch(err => {
         console.error('[Background Jobs] Receipt fetch error:', err);
       });
-
-      // Then run every hour
-      setInterval(() => {
-        fetchMissingReceiptURLs().catch(err => {
-          console.error('[Background Jobs] Receipt fetch error:', err);
-        });
-      }, 60 * 60 * 1000); // 1 hour
-    }
+    }, 60 * 60 * 1000); // 1 hour
   }
 })();
-
-export default app;

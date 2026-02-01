@@ -1,4 +1,4 @@
-import { Link } from "wouter";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Heart, GraduationCap, Stethoscope, Home, Sparkles, Shield, Users, ArrowRight, LogIn, UserPlus } from "lucide-react";
 import { useLanguage } from "@/lib/i18n";
@@ -7,6 +7,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function WelcomePage() {
   const { t, isRTL } = useLanguage();
+  const [, setLocation] = useLocation();
 
   const stats = [
     { title: t("welcome.stat1Title"), value: t("welcome.stat1Value"), icon: Users },
@@ -82,19 +83,26 @@ export default function WelcomePage() {
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 mb-12">
-              <Link href="/donor/signup">
-                <Button size="lg" className="h-14 px-8 text-lg font-medium shadow-xl shadow-primary/25 hover:shadow-2xl hover:shadow-primary/30 transition-all">
+              <a href="/donor/signup" className="inline-block">
+                <Button
+                  size="lg"
+                  className="h-14 px-8 text-lg font-medium shadow-xl shadow-primary/25 hover:shadow-2xl hover:shadow-primary/30 transition-all w-full"
+                >
                   <UserPlus className={`w-5 h-5 ${isRTL ? "ml-2" : "mr-2"}`} />
-                  {t("welcome.createAccount")}
+                  Sign Up
                   <ArrowRight className={`w-5 h-5 ${isRTL ? "mr-2 rotate-180" : "ml-2"}`} />
                 </Button>
-              </Link>
-              <Link href="/donor/login">
-                <Button size="lg" variant="outline" className="h-14 px-8 text-lg font-medium border-2 hover:bg-primary/5 transition-all">
+              </a>
+              <a href="/donor/login" className="inline-block">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="h-14 px-8 text-lg font-medium border-2 hover:bg-primary/5 transition-all w-full"
+                >
                   <LogIn className={`w-5 h-5 ${isRTL ? "ml-2" : "mr-2"}`} />
-                  {t("welcome.signIn")}
+                  Login
                 </Button>
-              </Link>
+              </a>
             </div>
 
             {/* Trust Badge */}
@@ -148,17 +156,17 @@ export default function WelcomePage() {
               {t("welcome.secureNote")}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/donor/signup">
-                <Button size="lg" className="h-12 px-6">
+              <a href="/donor/signup" className="inline-block">
+                <Button size="lg" className="h-12 px-6 w-full">
                   <UserPlus className={`w-4 h-4 ${isRTL ? "ml-2" : "mr-2"}`} />
                   {t("welcome.createAccount")}
                 </Button>
-              </Link>
-              <Link href="/donor/login">
-                <Button size="lg" variant="ghost">
+              </a>
+              <a href="/donor/login" className="inline-block">
+                <Button size="lg" variant="ghost" className="w-full">
                   {t("welcome.alreadyMember")} <span className="text-primary font-medium ml-1">{t("welcome.signIn")}</span>
                 </Button>
-              </Link>
+              </a>
             </div>
           </div>
         </div>
