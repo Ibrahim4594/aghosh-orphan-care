@@ -1,0 +1,22 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "dist/index.cjs",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/uploads/(.*)",
+      "dest": "dist/public/uploads/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "dist/index.cjs"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  }
+}
