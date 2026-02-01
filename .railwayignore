@@ -1,0 +1,52 @@
+# Railway Ignore File
+# Excludes files from deployment to speed up builds
+
+# Development files
+*.md
+.git
+.github
+.vscode
+.idea
+
+# Test files
+*.test.ts
+*.test.js
+*.spec.ts
+*.spec.js
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Environment files (these should be set in Railway dashboard)
+.env
+.env.local
+.env.development
+.env.test
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+.cache
+
+# Documentation
+docs/
+DEPLOYMENT.md
+OPTIMIZATIONS.md
+
+# Scripts (already executed)
+script/
+link-all.cjs
+fetch-receipts.cjs
+
+# Client source (already built)
+client/
+
+# Build artifacts that will be regenerated
+node_modules/
+dist/
